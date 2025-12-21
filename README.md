@@ -1,59 +1,25 @@
-# FrontendMyWhiteboard
+# 🎨 MyWhiteboard UI - Cliente de Pizarra Infinita
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.2.0.
+Interfaz de usuario interactiva desarrollada en Angular para la creación y colaboración en pizarras digitales en tiempo real. Este cliente se enfoca en proporcionar una experiencia de dibujo fluida, permitiendo el trabajo colaborativo simultáneo con una arquitectura reactiva.
 
-## Development server
+## 🛠️ Stack Tecnológico
+* **Framework:** Angular 17/18.
+* **Componentes de UI:** **Angular Material** para una experiencia de usuario limpia y profesional.
+* **Gestión Asíncrona:** **RxJS** para el manejo de flujos de datos en tiempo real provenientes de WebSockets.
+* **Gráficos:** HTML5 **Canvas API** con lógica de transformación matricial para soporte de Zoom y Desplazamiento.
+* **Comunicación:** **StompJS** y **SockJS** para la conexión persistente con el backend.
+* **Despliegue:** Render Static Site con configuración de Single Page Application (SPA).
 
-To start a local development server, run:
+## ✨ Características de la Interfaz
+* **Lienzo Infinito:** Implementación de un sistema de coordenadas dinámico que permite realizar Zoom (con rueda del mouse) y Desplazamiento (Pan) sin límites.
+* **Colaboración Visual:** Visualización en vivo de cursores remotos identificados por nombre de usuario, permitiendo saber exactamente quién está dibujando.
+* **Dashboard de Gestión:** Organización de pizarras mediante categorías: "Mis Pizarras" y "Compartidas conmigo".
+* **Herramientas de Edición:** Selector de colores, control de grosor de trazo, borrador y función de limpieza total de pizarra.
+* **Exportación de Proyectos:** Capacidad para descargar el contenido del lienzo directamente como un archivo de imagen (PNG).
+* **Miniaturas Dinámicas:** Generación y envío automático de capturas de la pizarra al backend para previsualización en el Home.
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## ⚙️ Configuración para Desarrollo
+1.  **Clonar el repositorio:** `git clone https://github.com/tu-usuario/mywhiteboard-frontend.git`
+2.  **Instalar dependencias:** `npm install`
+3.  **Configurar entorno:** Editar `src/environments/environment.ts` con la URL de tu API de Render.
+4.  **Ejecutar localmente:** `ng serve`
