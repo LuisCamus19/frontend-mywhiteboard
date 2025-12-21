@@ -67,7 +67,10 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
+    // willReadFrequently ayuda al rendimiento al guardar miniaturas
     this.ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+
+    // Configuración inicial del tamaño con soporte Retina
     this.resizeCanvas();
 
     // --- EVENTOS DE MOUSE ---
@@ -77,7 +80,7 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     canvas.addEventListener('mouseout', () => this.onMouseUp());
 
     // --- EVENTOS TÁCTILES (iPad / Apple Pencil) ---
-    // Usamos passive: false para poder cancelar el scroll
+    // passive: false es CRÍTICO para poder usar e.preventDefault()
     canvas.addEventListener('touchstart', (e) => this.handleTouch(e, 'start'), { passive: false });
     canvas.addEventListener('touchmove', (e) => this.handleTouch(e, 'move'), { passive: false });
     canvas.addEventListener('touchend', () => this.onMouseUp(), { passive: false });
@@ -92,15 +95,17 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     if (this.timeoutGuardado) clearTimeout(this.timeoutGuardado);
   }
 
+  // 🔥 MÉTODO PUENTE TÁCTIL
   private handleTouch(e: TouchEvent, tipo: 'start' | 'move') {
+    // Evitar scroll nativo del iPad
     if (!this.modoMover || (this.modoMover && this.arrastrando)) {
-      e.preventDefault(); // Evita scroll
+      e.preventDefault();
     }
 
     if (e.touches.length > 0) {
       const touch = e.touches[0];
-      // Pasamos el objeto Touch directamente como si fuera un MouseEvent
-      // (ambos tienen clientX y clientY)
+      // Pasamos el evento Touch directamente a los métodos del Mouse
+      // TypeScript aceptará "touch as any" o podemos castearlo
       if (tipo === 'start') {
         this.onMouseDown(touch as any);
       } else {
@@ -114,10 +119,23 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     this.resizeCanvas();
   }
 
+  // CORRECCIÓN RETINA / HIGH DPI
   resizeCanvas() {
     if (!this.canvasRef) return;
-    this.canvasRef.nativeElement.width = window.innerWidth;
-    this.canvasRef.nativeElement.height = window.innerHeight;
+    const canvas = this.canvasRef.nativeElement;
+
+    // 1. Obtenemos la densidad de píxeles (2 en iPad Retina, 1 en monitores normales)
+    const dpr = window.devicePixelRatio || 1;
+
+    // 2. Ajustamos el tamaño interno (físico) del canvas
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    // 3. Ajustamos el tamaño visual (CSS) del canvas
+    canvas.style.width = `${window.innerWidth}px`;
+    canvas.style.height = `${window.innerHeight}px`;
+
+    // 4. Redibujamos todo aplicando el nuevo contexto
     this.redibujarTodo();
   }
 
@@ -163,18 +181,30 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // DIBUJADO OPTIMIZADO PARA RETINA
   private redibujarTodo() {
     if (!this.ctx || !this.canvasRef) return;
     const canvas = this.canvasRef.nativeElement;
+    const dpr = window.devicePixelRatio || 1;
 
+    // 1. Reseteamos la matriz de transformación completamente
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
-    this.ctx.fillStyle = 'white';
-    this.ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // 2. Limpiamos el canvas completo (usando dimensiones físicas)
+    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 3. Aplicamos la escala base del dispositivo (Retina)
+    this.ctx.scale(dpr, dpr);
+
+    // 4. Fondo blanco (usando dimensiones lógicas, ya que el scale lo ajusta)
+    this.ctx.fillStyle = 'white';
+    this.ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+
+    // 5. Aplicamos el Zoom y Pan del usuario
     this.ctx.translate(this.offsetX, this.offsetY);
     this.ctx.scale(this.scale, this.scale);
 
+    // 6. Dibujamos los trazos
     this.historialTrazos.forEach((trazo) => {
       this.ctx.beginPath();
       const x0 = trazo.xInicial ?? trazo.x0;
@@ -191,12 +221,11 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // CORRECCIÓN DE COORDENADAS (MOUSE Y TOUCH)
   private onMouseDown(e: any) {
-    // 'any' acepta MouseEvent o Touch
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
 
-    // Aquí es donde sucede la magia: restamos la posición del canvas
-    // Esto asegura que (0,0) sea siempre la esquina del papel, no de la pantalla
+    // Normalizamos: Coordenada de pantalla - Posición del canvas
     this.prevX = e.clientX - rect.left;
     this.prevY = e.clientY - rect.top;
 
@@ -211,11 +240,10 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   private onMouseMove(e: any) {
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
 
-    // Calculamos coordenada LOCAL del canvas
+    // Coordenada actual normalizada
     const xActual = e.clientX - rect.left;
     const yActual = e.clientY - rect.top;
 
-    // Convertimos a coordenada del MUNDO (considerando Zoom y Pan)
     const xMundo = (xActual - this.offsetX) / this.scale;
     const yMundo = (yActual - this.offsetY) / this.scale;
 
@@ -233,7 +261,6 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
       this.prevX = xActual;
       this.prevY = yActual;
     } else if (!this.modoMover && this.dibujando) {
-      // Usamos las coordenadas normalizadas
       const x0 = (this.prevX - this.offsetX) / this.scale;
       const y0 = (this.prevY - this.offsetY) / this.scale;
       const x1 = (xActual - this.offsetX) / this.scale;
@@ -245,7 +272,6 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
       this.historialTrazos.push(trazo);
       this.redibujarTodo();
 
-      // Actualizamos prevX/prevY para el siguiente segmento
       this.prevX = xActual;
       this.prevY = yActual;
     }
@@ -263,7 +289,8 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   private onWheel(e: WheelEvent) {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    // También normalizamos el zoom para que se centre en el mouse real
+
+    // Zoom centrado en el mouse
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
