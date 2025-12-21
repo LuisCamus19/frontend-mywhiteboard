@@ -1,0 +1,75 @@
+<div style="width: 100vw; height: 100vh; overflow: hidden; position: relative; background: #ddd;">
+
+  <canvas #pizarra style="display: block; width: 100%; height: 100%; cursor: crosshair;"></canvas>
+
+  <div *ngFor="let cursor of cursoresRemotos | keyvalue" 
+       [style.left.px]="(cursor.value.x * scale) + offsetX"
+       [style.top.px]="(cursor.value.y * scale) + offsetY"
+       style="position: absolute; pointer-events: none; z-index: 50; transition: all 0.1s linear;">
+    
+    <svg width="24" height="24" viewBox="0 0 24 24" [style.fill]="cursor.value.color">
+      <path d="M5.5 3.21l12.32 12.32-4.59 1.09 3.94 3.94-1.41 1.41-3.94-3.94-1.09 4.59z" stroke="white" stroke-width="1"/>
+    </svg>
+    
+    <div style="background: black; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 15px; margin-top: -5px; white-space: nowrap;">
+      {{ cursor.value.usuario }}
+    </div>
+  </div>
+
+  <div style="position: fixed; top: 20px; left: 20px; background: white; padding: 10px 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 15px; z-index: 100;">
+    <button (click)="irAlHome()" title="Volver al Dashboard" 
+            style="background: transparent; border: none; cursor: pointer; font-size: 20px;">
+      ⬅
+    </button>
+    <div style="border-left: 1px solid #ddd; padding-left: 15px;">
+      <span style="font-size: 12px; color: #888; display: block;">Sala</span>
+      <span style="font-weight: bold; color: #333;">{{ salaId }}</span>
+    </div>
+  </div>
+
+  <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 5px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; gap: 5px; z-index: 100;">
+    <button (click)="toggleModo(false)" 
+            [style.background]="!modoMover ? '#eef2ff' : 'transparent'" 
+            [style.color]="!modoMover ? '#3f51b5' : '#666'" 
+            style="border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; transition: 0.2s;">
+      ✏️ Dibujar
+    </button>
+    <button (click)="toggleModo(true)" 
+            [style.background]="modoMover ? '#eef2ff' : 'transparent'" 
+            [style.color]="modoMover ? '#3f51b5' : '#666'" 
+            style="border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; transition: 0.2s;">
+      🖐️ Mover
+    </button>
+  </div>
+
+  <div style="position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 25px; border-radius: 16px; box-shadow: 0 5px 20px rgba(0,0,0,0.15); display: flex; gap: 20px; align-items: center; z-index: 100;">
+    
+    <div style="display: flex; flex-direction: column; align-items: center;">
+      <input type="color" [(ngModel)]="colorActual" style="width: 35px; height: 35px; border: none; border-radius: 50%; overflow: hidden; cursor: pointer; padding: 0;">
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 5px;">
+      <span style="font-size: 10px;">Grosor</span>
+      <input type="range" min="1" max="30" [(ngModel)]="grosor" style="cursor: pointer; width: 80px;">
+    </div>
+
+    <div style="width: 1px; height: 30px; background: #eee;"></div>
+
+    <button (click)="activarBorrador()" title="Borrador" style="background: transparent; border: none; font-size: 20px; cursor: pointer;">🧽</button>
+    <button (click)="descargarImagen()" title="Guardar PNG" style="background: transparent; border: none; font-size: 20px; cursor: pointer;">💾</button>
+    <button (click)="borrarTodo()" title="Limpiar Pizarra" style="background: transparent; border: none; font-size: 20px; cursor: pointer;">🗑️</button>
+  </div>
+
+  <div style="position: fixed; bottom: 30px; left: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; z-index: 100;">
+    <button (click)="cambiarZoom(0.1)" style="width: 40px; height: 40px; border: none; background: white; cursor: pointer; font-size: 18px; border-bottom: 1px solid #eee;">+</button>
+    <div style="font-size: 10px; text-align: center; padding: 5px 0; color: #666; font-weight: bold;">
+      {{ (scale * 100) | number:'1.0-0' }}%
+    </div>
+    <button (click)="cambiarZoom(-0.1)" style="width: 40px; height: 40px; border: none; background: white; cursor: pointer; font-size: 18px; border-top: 1px solid #eee;">-</button>
+  </div>
+
+  <div *ngIf="modoMover" style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; pointer-events: none; z-index: 90;">
+    Arrastra para moverte
+  </div>
+
+</div>

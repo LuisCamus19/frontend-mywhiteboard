@@ -1,0 +1,114 @@
+/* 1. Estilos Generales */
+:host {
+  display: block;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  height: 100vh;
+}
+
+/* 2. Barra de Creación */
+.crear-zona {
+  background: white;
+  padding: 15px 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 40px;
+  border: 1px solid #eee;
+}
+
+::ng-deep .mat-mdc-form-field-subscript-wrapper { display: none; }
+
+/* 3. Grid Layout */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Tarjetas un poco más anchas */
+  gap: 30px;
+  padding-bottom: 40px;
+}
+
+/* 4. Tarjetas (Cards) */
+.sala-card {
+  border-radius: 12px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  overflow: hidden;
+  background: white;
+  display: flex;
+  flex-direction: column; /* Asegura que el footer quede abajo */
+}
+
+.sala-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* Avatar Placeholder (Círculo con inicial) */
+.avatar-placeholder {
+  background: #e8eaf6;
+  color: #3f51b5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* Header Text */
+.sala-card mat-card-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Imagen de Preview */
+.preview-img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  background-color: #f9f9f9;
+}
+
+/* 5. ESTILOS DE BOTONES PERSONALIZADOS */
+
+/* Botón Invitar (Azul Relleno) */
+.btn-invitar {
+  background-color: #3f51b5 !important;
+  color: white !important;
+  border-radius: 20px !important; /* Bordes redondos estilo Pill */
+  padding: 0 15px !important;
+  font-size: 12px !important;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Botón Eliminar (Gris Bordeado -> Rojo Hover) */
+.btn-borrar {
+  color: #777 !important;
+  border-color: #ddd !important;
+  border-radius: 20px !important;
+  padding: 0 15px !important;
+  font-size: 12px !important;
+  margin-right: 8px; /* Espacio entre botones */
+  transition: all 0.2s;
+}
+
+.btn-borrar:hover {
+  color: #f44336 !important; /* Rojo Material */
+  background-color: #ffebee !important; /* Fondo rojo muy suave */
+  border-color: #f44336 !important;
+}
+
+/* Badge para compartidos */
+.badge-compartido {
+  position: absolute; 
+  top: 10px; 
+  right: 10px; 
+  background: #e8eaf6; 
+  color: #3f51b5; 
+  padding: 4px 10px; 
+  border-radius: 12px; 
+  font-size: 10px; 
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(63, 81, 181, 0.2);
+}

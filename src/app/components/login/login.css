@@ -1,0 +1,113 @@
+/* 1. Fondo de Pantalla Completa */
+.login-container {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Degradado moderno */
+  background: linear-gradient(135deg, #ece9e6 0%, #ffffff 100%);
+  background-image: radial-gradient(#3f51b5 0.5px, transparent 0.5px), radial-gradient(#3f51b5 0.5px, #f5f7fa 0.5px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+}
+
+/* 2. La Tarjeta (Card) */
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  background: white;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* 3. Título y Cabecera */
+mat-card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 25px; /* Más espacio debajo del título */
+}
+
+mat-card-title {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  color: #2c3e50;
+  margin-top: 10px !important;
+  margin-bottom: 5px !important;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+/* 4. Inputs (Campos de Texto) */
+mat-form-field {
+  width: 100%;
+  font-size: 14px;
+  /* 🔥 AQUÍ ESTÁ EL ARREGLO: Separación entre inputs */
+  margin-bottom: 20px; 
+}
+
+/* Hacemos que el input se vea limpio ocultando espacio extra de error si no lo hay */
+::ng-deep .mat-mdc-form-field-subscript-wrapper {
+  margin-top: 5px; /* Un pequeño ajuste si sale error */
+}
+
+/* 5. Botón Principal (Entrar/Registrar) */
+button[type="submit"] {
+  color: white;
+  width: 100%;
+  padding: 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 8px;
+  background-color: #3f51b5; 
+  box-shadow: 0 4px 15px rgba(63, 81, 181, 0.3);
+  transition: all 0.3s ease;
+  margin-top: 10px; /* Separación extra con el último input */
+}
+
+button[type="submit"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(63, 81, 181, 0.4);
+  background-color: #303f9f;
+}
+
+button[type="submit"]:active {
+  transform: translateY(1px);
+}
+
+/* 6. Botón Secundario (Cambiar a Registro) */
+mat-card-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 15px !important;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 20px;
+}
+
+mat-card-actions button {
+  color: #555;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+mat-card-actions button:hover {
+  color: #3f51b5;
+  background: transparent;
+}
+
+/* 7. Animación */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}

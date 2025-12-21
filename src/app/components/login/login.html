@@ -1,0 +1,57 @@
+<div class="login-container">
+  
+  <mat-card class="login-card">
+    
+    <mat-card-header>
+      <div mat-card-avatar>
+        <mat-icon style="font-size: 40px; height: 40px; width: 40px; color: #3f51b5;">
+          {{ isLoginMode ? 'lock' : 'person_add' }}
+        </mat-icon>
+      </div>
+      <mat-card-title>
+        {{ isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta' }}
+      </mat-card-title>
+      <div class="subtitle">
+        {{ isLoginMode ? 'Ingresa para continuar colaborando' : 'Regístrate para empezar a crear' }}
+      </div>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form (ngSubmit)="submit()">
+        
+        <mat-form-field appearance="outline">
+          <mat-label>Nombre de Usuario</mat-label>
+          <input matInput 
+                 [(ngModel)]="usuario.username" 
+                 name="username" 
+                 required 
+                 autocomplete="off">
+          <mat-icon matSuffix>person</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Contraseña</mat-label>
+          <input matInput 
+                 [(ngModel)]="usuario.password" 
+                 name="password" 
+                 type="password" 
+                 required>
+          <mat-icon matSuffix>key</mat-icon>
+        </mat-form-field>
+
+        <button mat-raised-button type="submit">
+          {{ isLoginMode ? 'ENTRAR' : 'REGISTRARSE' }}
+        </button>
+
+      </form>
+    </mat-card-content>
+
+    <mat-card-actions>
+      <button mat-button (click)="toggleMode()">
+        {{ isLoginMode ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión' }}
+      </button>
+    </mat-card-actions>
+
+  </mat-card>
+  
+</div>

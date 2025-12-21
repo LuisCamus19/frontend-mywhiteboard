@@ -1,0 +1,111 @@
+<mat-sidenav-container style="height: 100vh;">
+  
+  <mat-sidenav mode="side" opened style="width: 260px; background: #fff; border-right: 1px solid #e0e0e0;">
+    <div style="padding: 30px 20px; border-bottom: 1px solid #f0f0f0;">
+      <h2 style="margin:0; color: #3f51b5; font-weight: 800; letter-spacing: -1px;">MyWhiteboard</h2>
+      <p style="margin: 5px 0 0 0; color: #888; font-size: 12px;">Colaboración en tiempo real</p>
+    </div>
+    
+    <mat-nav-list style="padding-top: 20px;">
+      <a mat-list-item (click)="seccionActual = 'MIS_SALAS'" 
+         [style.background]="seccionActual === 'MIS_SALAS' ? '#e8eaf6' : 'transparent'"
+         [style.color]="seccionActual === 'MIS_SALAS' ? '#3f51b5' : '#444'"
+         style="margin: 0 10px; border-radius: 8px;">
+        <mat-icon matListItemIcon>dashboard</mat-icon> 
+        <span matListItemTitle style="font-weight: 500;">Mis Pizarras</span>
+      </a>
+      
+      <a mat-list-item (click)="seccionActual = 'COMPARTIDAS'" 
+         [style.background]="seccionActual === 'COMPARTIDAS' ? '#e8eaf6' : 'transparent'"
+         [style.color]="seccionActual === 'COMPARTIDAS' ? '#3f51b5' : '#444'"
+         style="margin: 0 10px; border-radius: 8px; margin-top: 5px;">
+        <mat-icon matListItemIcon>group_work</mat-icon> 
+        <span matListItemTitle style="font-weight: 500;">Compartidas</span>
+      </a>
+    </mat-nav-list>
+
+    <div style="position: absolute; bottom: 30px; width: 100%; text-align: center;">
+      <button mat-stroked-button color="warn" (click)="logout()" style="width: 80%;">
+        <mat-icon>logout</mat-icon> Cerrar Sesión
+      </button>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content style="background: #f8f9fa; padding: 40px;">
+    
+    <div *ngIf="seccionActual === 'MIS_SALAS'">
+      <h1 style="font-weight: 300; margin-bottom: 30px; color: #333;">Tus Proyectos</h1>
+
+      <div class="crear-zona">
+        <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em;">
+          <mat-label>Nombre de nueva pizarra</mat-label>
+          <input matInput [(ngModel)]="nuevoNombre" (keyup.enter)="crearSala()">
+        </mat-form-field>
+        <button mat-raised-button color="primary" (click)="crearSala()" [disabled]="!nuevoNombre" style="height: 50px; padding: 0 30px; border-radius: 8px; font-weight: bold;">
+          CREAR
+        </button>
+      </div>
+
+      <div class="grid">
+        <mat-card *ngFor="let sala of misSalas" class="sala-card" (click)="irASala(sala.id)">
+          
+          <mat-card-header>
+            <div mat-card-avatar class="avatar-placeholder">{{ sala.titulo.charAt(0) | uppercase }}</div>
+            <mat-card-title>{{ sala.titulo }}</mat-card-title>
+            <mat-card-subtitle>Creado: Hoy</mat-card-subtitle>
+          </mat-card-header>
+          
+          <img mat-card-image [src]="sala.imagenFondo ? sala.imagenFondo : 'https://placehold.co/600x400/f5f5f5/CCCCCC?text=Vacío'" 
+               class="preview-img">
+          
+          <mat-divider></mat-divider>
+
+          <mat-card-actions align="end" style="padding: 10px 15px;">
+            
+            <button mat-stroked-button class="btn-borrar" (click)="borrarSala(sala.id, $event)">
+              <mat-icon>delete</mat-icon> Borrar
+            </button>
+
+            <button mat-flat-button class="btn-invitar" (click)="abrirInvitar(sala.id, $event)">
+              <mat-icon>person_add</mat-icon> Invitar
+            </button>
+
+          </mat-card-actions>
+
+        </mat-card>
+      </div>
+    </div>
+
+    <div *ngIf="seccionActual === 'COMPARTIDAS'">
+      <h1 style="font-weight: 300; margin-bottom: 30px;">Colaboraciones</h1>
+
+      <div class="grid">
+        <mat-card *ngFor="let sala of salasCompartidas" class="sala-card" (click)="irASala(sala.id)" style="border: 2px solid #e8eaf6;">
+          
+          <div class="badge-compartido">COMPARTIDO</div>
+
+          <mat-card-header>
+            <mat-icon mat-card-avatar style="color: #3f51b5;">folder_shared</mat-icon>
+            <mat-card-title>{{ sala.titulo }}</mat-card-title>
+            <mat-card-subtitle>De: <strong>{{ sala.propietario }}</strong></mat-card-subtitle>
+          </mat-card-header>
+
+          <img mat-card-image [src]="sala.imagenFondo ? sala.imagenFondo : 'https://placehold.co/600x400/f5f5f5/CCCCCC?text=Vacío'" 
+               class="preview-img" style="opacity: 0.9;">
+          
+          <mat-divider></mat-divider>
+
+          <mat-card-actions align="end">
+             <button mat-button color="primary">ENTRAR A SALA</button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+      
+      <div *ngIf="salasCompartidas.length === 0" style="text-align: center; margin-top: 50px; color: #999;">
+        <mat-icon style="font-size: 60px; height: 60px; width: 60px; opacity: 0.3;">folder_open</mat-icon>
+        <p>Aún no te han invitado a ninguna pizarra.</p>
+      </div>
+    </div>
+
+  </mat-sidenav-content>
+</mat-sidenav-container>
