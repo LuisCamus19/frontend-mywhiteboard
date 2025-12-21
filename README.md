@@ -17,9 +17,3 @@ Interfaz de usuario interactiva desarrollada en Angular para la creación y cola
 * **Herramientas de Edición:** Selector de colores, control de grosor de trazo, borrador y función de limpieza total de pizarra.
 * **Exportación de Proyectos:** Capacidad para descargar el contenido del lienzo directamente como un archivo de imagen (PNG).
 * **Miniaturas Dinámicas:** Generación y envío automático de capturas de la pizarra al backend para previsualización en el Home.
-
-## ⚙️ Configuración para Desarrollo
-1.  **Clonar el repositorio:** `git clone https://github.com/tu-usuario/mywhiteboard-frontend.git`
-2.  **Instalar dependencias:** `npm install`
-3.  **Configurar entorno:** Editar `src/environments/environment.ts` con la URL de tu API de Render.
-4.  **Ejecutar localmente:** `ng serve`
