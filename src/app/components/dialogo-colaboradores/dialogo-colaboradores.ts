@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-dialogo-colaboradores',
@@ -80,8 +81,9 @@ export class DialogoColaboradores {
 
   buscar() {
     if (!this.filtro.trim()) return;
+    // ✅ CAMBIO: Usar environment.apiUrl
     this.http
-      .get<any[]>(`http://localhost:8080/api/usuarios/buscar?filtro=${this.filtro}`)
+      .get<any[]>(`${environment.apiUrl}/api/usuarios/buscar?filtro=${this.filtro}`)
       .subscribe({
         next: (res) => {
           this.resultados = res;
@@ -92,8 +94,9 @@ export class DialogoColaboradores {
   }
 
   invitar(user: any) {
+    // ✅ CAMBIO: Usar environment.apiUrl
     this.http
-      .post(`http://localhost:8080/api/salas/${this.data.salaId}/colaboradores`, {
+      .post(`${environment.apiUrl}/api/salas/${this.data.salaId}/colaboradores`, {
         username: user.username,
       })
       .subscribe({

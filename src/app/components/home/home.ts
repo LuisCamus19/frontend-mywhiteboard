@@ -15,6 +15,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { DialogoColaboradores } from '../dialogo-colaboradores/dialogo-colaboradores';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-home',
@@ -39,7 +40,8 @@ export class Home implements OnInit {
   nuevoNombre: string = '';
   seccionActual: 'MIS_SALAS' | 'COMPARTIDAS' = 'MIS_SALAS';
 
-  URL_API = 'http://localhost:8080/api/salas';
+  // ✅ CAMBIO: Usar la URL del environment en lugar de localhost
+  private URL_API = `${environment.apiUrl}/api/salas`;
 
   constructor(
     private http: HttpClient,
@@ -55,13 +57,17 @@ export class Home implements OnInit {
   }
 
   cargarMisSalas() {
-    this.http.get<any[]>(this.URL_API).subscribe((data) => (this.misSalas = data));
+    this.http.get<any[]>(this.URL_API).subscribe({
+      next: (data) => (this.misSalas = data),
+      error: (err) => console.error('Error cargando mis salas', err),
+    });
   }
 
   cargarCompartidas() {
-    this.http
-      .get<any[]>(`${this.URL_API}/compartidas`)
-      .subscribe((data) => (this.salasCompartidas = data));
+    this.http.get<any[]>(`${this.URL_API}/compartidas`).subscribe({
+      next: (data) => (this.salasCompartidas = data),
+      error: (err) => console.error('Error cargando compartidas', err),
+    });
   }
 
   crearSala() {
@@ -76,7 +82,7 @@ export class Home implements OnInit {
   }
 
   abrirInvitar(salaId: string, event: Event) {
-    event.stopPropagation(); // Evitar entrar a la sala
+    event.stopPropagation();
     this.dialog.open(DialogoColaboradores, {
       width: '400px',
       data: { salaId: salaId },
@@ -86,12 +92,17 @@ export class Home implements OnInit {
   borrarSala(id: string, event: Event) {
     event.stopPropagation();
     if (!confirm('⚠️ ¿Borrar pizarra permanentemente?')) return;
-    this.http.delete(`http://localhost:8080/api/pizarra/${id}`).subscribe({
+
+    // ✅ CAMBIO: Aquí también usamos environment.apiUrl
+    this.http.delete(`${environment.apiUrl}/api/salas/${id}`).subscribe({
       next: () => {
-        this.snackBar.open('🗑️ Eliminada', 'Ok');
+        this.snackBar.open('🗑️ Eliminada', 'Ok', { duration: 3000 });
         this.cargarMisSalas();
       },
-      error: () => this.snackBar.open('❌ Error al borrar', 'Cerrar'),
+      error: (err) => {
+        console.error(err);
+        this.snackBar.open('❌ Error al borrar', 'Cerrar', { duration: 3000 });
+      },
     });
   }
 
