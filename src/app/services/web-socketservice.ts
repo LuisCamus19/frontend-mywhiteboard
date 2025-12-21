@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Client } from '@stomp/stompjs';
-import importSockJS from 'sockjs-client';
-import { Observable, Subject } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { Subject } from 'rxjs';
 import SockJS from 'sockjs-client';
 import { environment } from '../../environments/environment';
 
@@ -12,30 +10,41 @@ import { environment } from '../../environments/environment';
 export class WebSocketservice {
   private clienteStomp!: Client;
 
+  // Canales observables para que el Tablero se suscriba
   public trazos$ = new Subject<any>();
-  public cursores$ = new Subject<any>(); // 🔥 NUEVO: Canal de cursores
+  public cursores$ = new Subject<any>();
 
+  /**
+   * Conecta al WebSocket y se suscribe a los canales de la sala.
+   * @param salaId
+   */
   conectar(salaId: string) {
-
     const socketUrl = `${environment.apiUrl}/ws-pizarra`;
 
     this.clienteStomp = new Client({
       webSocketFactory: () => new SockJS(socketUrl),
+      reconnectDelay: 5000,
       onConnect: () => {
-        console.log('✅ Conectado a WebSocket en la nube');
+        console.log(`✅ Conectado a WebSocket en sala: ${salaId}`);
 
+        // 1. Suscripción al canal principal (Dibujos, Borrados, Undo/Redo)
         this.clienteStomp.subscribe(`/tema/tablero/${salaId}`, (mensaje) => {
-          this.trazos$.next(JSON.parse(mensaje.body));
+          if (mensaje.body) {
+            this.trazos$.next(JSON.parse(mensaje.body));
+          }
         });
 
         this.clienteStomp.subscribe(`/tema/cursores/${salaId}`, (mensaje) => {
-          this.cursores$.next(JSON.parse(mensaje.body));
+          if (mensaje.body) {
+            this.cursores$.next(JSON.parse(mensaje.body));
+          }
         });
       },
       onStompError: (frame) => {
         console.error('❌ Error de STOMP:', frame);
       },
     });
+
     this.clienteStomp.activate();
   }
 
@@ -48,7 +57,6 @@ export class WebSocketservice {
     }
   }
 
-  // 🔥 NUEVO: Enviar mi posición
   enviarCursor(salaId: string, data: any) {
     if (this.clienteStomp && this.clienteStomp.connected) {
       this.clienteStomp.publish({
@@ -58,19 +66,34 @@ export class WebSocketservice {
     }
   }
 
+  enviarDeshacer(salaId: string, usuario: string) {
+    if (this.clienteStomp && this.clienteStomp.connected) {
+      this.clienteStomp.publish({
+        destination: `/app/deshacer/${salaId}`,
+        body: JSON.stringify({ usuario }), // Enviamos quién pide deshacer
+      });
+    }
+  }
+
+
+  enviarRehacer(salaId: string, usuario: string) {
+    if (this.clienteStomp && this.clienteStomp.connected) {
+      this.clienteStomp.publish({
+        destination: `/app/rehacer/${salaId}`,
+        body: JSON.stringify({ usuario }),
+      });
+    }
+  }
+
+
   borrarPizarra(salaId: string) {
-    // Retornamos un observable dummy o implementas la llamada HTTP aquí si prefieres
-    // Pero como lo haces desde el componente con HttpClient, esto es solo para cumplir tipado si lo usabas
     return { subscribe: () => {} } as any;
   }
 
-  obtenerHistorial(salaId: string) {
-    // Este método lo reemplazamos por HTTP directo en el componente,
-    // pero si lo usas aquí, necesitarías inyectar HttpClient.
-    // Para simplificar, dejaremos que el componente haga el GET HTTP.
-    // Retorno un observable vacio para que no rompa si lo llamas.
-    const subject = new Subject<any[]>();
-    setTimeout(() => subject.next([]), 100);
-    return subject;
+  desconectar() {
+    if (this.clienteStomp) {
+      this.clienteStomp.deactivate();
+      console.log('🔌 WebSocket desconectado');
+    }
   }
 }

@@ -13,7 +13,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Authservice } from '../../services/authservice';
 import { HttpClient } from '@angular/common/http';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { environment } from '../../../environments/environment';
 import { Subscription } from 'rxjs';
 
@@ -48,6 +47,9 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   public cursoresRemotos: Map<string, any> = new Map();
   private miUsuario: string = '';
 
+  // NUEVO: ID del trazo actual (para agrupar puntos)
+  private currentGrupoId: string = '';
+
   constructor(
     private wsService: WebSocketservice,
     private route: ActivatedRoute,
@@ -67,10 +69,10 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
-    // willReadFrequently ayuda al rendimiento al guardar miniaturas
+    // willReadFrequently optimiza la lectura para guardar imágenes
     this.ctx = canvas.getContext('2d', { willReadFrequently: true })!;
 
-    // Configuración inicial del tamaño con soporte Retina
+    // Configuración inicial (Retina Display)
     this.resizeCanvas();
 
     // --- EVENTOS DE MOUSE ---
@@ -79,8 +81,7 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     canvas.addEventListener('mouseup', () => this.onMouseUp());
     canvas.addEventListener('mouseout', () => this.onMouseUp());
 
-    // --- EVENTOS TÁCTILES (iPad / Apple Pencil) ---
-    // passive: false es CRÍTICO para poder usar e.preventDefault()
+    // --- EVENTOS TÁCTILES (iPad) ---
     canvas.addEventListener('touchstart', (e) => this.handleTouch(e, 'start'), { passive: false });
     canvas.addEventListener('touchmove', (e) => this.handleTouch(e, 'move'), { passive: false });
     canvas.addEventListener('touchend', () => this.onMouseUp(), { passive: false });
@@ -95,17 +96,13 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     if (this.timeoutGuardado) clearTimeout(this.timeoutGuardado);
   }
 
-  // 🔥 MÉTODO PUENTE TÁCTIL
+  // Puente para eventos táctiles
   private handleTouch(e: TouchEvent, tipo: 'start' | 'move') {
-    // Evitar scroll nativo del iPad
     if (!this.modoMover || (this.modoMover && this.arrastrando)) {
       e.preventDefault();
     }
-
     if (e.touches.length > 0) {
       const touch = e.touches[0];
-      // Pasamos el evento Touch directamente a los métodos del Mouse
-      // TypeScript aceptará "touch as any" o podemos castearlo
       if (tipo === 'start') {
         this.onMouseDown(touch as any);
       } else {
@@ -119,23 +116,17 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     this.resizeCanvas();
   }
 
-  // CORRECCIÓN RETINA / HIGH DPI
+  // Ajuste DPI (Retina)
   resizeCanvas() {
     if (!this.canvasRef) return;
     const canvas = this.canvasRef.nativeElement;
-
-    // 1. Obtenemos la densidad de píxeles (2 en iPad Retina, 1 en monitores normales)
     const dpr = window.devicePixelRatio || 1;
 
-    // 2. Ajustamos el tamaño interno (físico) del canvas
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
-
-    // 3. Ajustamos el tamaño visual (CSS) del canvas
     canvas.style.width = `${window.innerWidth}px`;
     canvas.style.height = `${window.innerHeight}px`;
 
-    // 4. Redibujamos todo aplicando el nuevo contexto
     this.redibujarTodo();
   }
 
@@ -148,13 +139,22 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
     this.wsService.conectar(this.salaId);
 
+    // Suscripción a Trazos y Eventos
     this.subscriptions.add(
       this.wsService.trazos$.subscribe((mensaje: any) => {
         if (!mensaje) return;
+
+        // LÓGICA DE ACTUALIZACIÓN
         if (mensaje.accion === 'BORRAR_TODO') {
           this.historialTrazos = [];
           this.redibujarTodo();
+        } else if (mensaje.accion === 'RECARGAR') {
+          // Si alguien hizo Undo/Redo, recargamos el historial limpio desde la DB
+          this.historialTrazos = [];
+          this.redibujarTodo(); // Limpia visualmente
+          this.cargarHistorial(); // Pide datos frescos
         } else {
+          // Es un trazo normal llegando en tiempo real
           this.historialTrazos.push(mensaje);
           this.redibujarTodo();
         }
@@ -181,30 +181,21 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  // DIBUJADO OPTIMIZADO PARA RETINA
   private redibujarTodo() {
     if (!this.ctx || !this.canvasRef) return;
     const canvas = this.canvasRef.nativeElement;
     const dpr = window.devicePixelRatio || 1;
 
-    // 1. Reseteamos la matriz de transformación completamente
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    // 2. Limpiamos el canvas completo (usando dimensiones físicas)
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 3. Aplicamos la escala base del dispositivo (Retina)
     this.ctx.scale(dpr, dpr);
-
-    // 4. Fondo blanco (usando dimensiones lógicas, ya que el scale lo ajusta)
     this.ctx.fillStyle = 'white';
     this.ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
-    // 5. Aplicamos el Zoom y Pan del usuario
     this.ctx.translate(this.offsetX, this.offsetY);
     this.ctx.scale(this.scale, this.scale);
 
-    // 6. Dibujamos los trazos
     this.historialTrazos.forEach((trazo) => {
       this.ctx.beginPath();
       const x0 = trazo.xInicial ?? trazo.x0;
@@ -221,11 +212,10 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  // CORRECCIÓN DE COORDENADAS (MOUSE Y TOUCH)
+  // --- INTERACCIÓN ---
+
   private onMouseDown(e: any) {
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-
-    // Normalizamos: Coordenada de pantalla - Posición del canvas
     this.prevX = e.clientX - rect.left;
     this.prevY = e.clientY - rect.top;
 
@@ -234,13 +224,13 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
       this.canvasRef.nativeElement.style.cursor = 'grabbing';
     } else {
       this.dibujando = true;
+      // Generamos un ID único para este trazo continuo
+      this.currentGrupoId = crypto.randomUUID();
     }
   }
 
   private onMouseMove(e: any) {
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-
-    // Coordenada actual normalizada
     const xActual = e.clientX - rect.left;
     const yActual = e.clientY - rect.top;
 
@@ -266,7 +256,17 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
       const x1 = (xActual - this.offsetX) / this.scale;
       const y1 = (yActual - this.offsetY) / this.scale;
 
-      const trazo = { x0, y0, x1, y1, color: this.colorActual, grosor: this.grosor };
+      const trazo = {
+        x0,
+        y0,
+        x1,
+        y1,
+        color: this.colorActual,
+        grosor: this.grosor,
+        // Enviamos metadata para el Undo/Redo
+        grupoId: this.currentGrupoId,
+        usuario: this.miUsuario,
+      };
 
       this.wsService.enviarTrazo(this.salaId, trazo);
       this.historialTrazos.push(trazo);
@@ -289,12 +289,9 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   private onWheel(e: WheelEvent) {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-
-    // Zoom centrado en el mouse
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-
     this.aplicarZoom(delta, mouseX, mouseY);
   }
 
@@ -312,6 +309,8 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     this.scale = newScale;
     this.redibujarTodo();
   }
+
+  // --- BOTONES Y ACCIONES ---
 
   irAlHome() {
     this.guardarMiniaturaAhora();
@@ -331,12 +330,9 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   guardarMiniaturaAhora() {
     if (!this.canvasRef || !this.salaId) return;
     const imagenBase64 = this.canvasRef.nativeElement.toDataURL('image/jpeg', 0.5);
-
     this.http
       .put(`${environment.apiUrl}/api/salas/${this.salaId}/imagen`, { imagen: imagenBase64 })
-      .subscribe({
-        error: (err) => console.error('Error al guardar miniatura:', err),
-      });
+      .subscribe({ error: (err) => console.error(err) });
   }
 
   activarBorrador() {
@@ -357,5 +353,14 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     if (confirm('⚠️ ¿Borrar todo el contenido de la pizarra?')) {
       this.wsService.borrarPizarra(this.salaId).subscribe();
     }
+  }
+
+  // NUEVOS MÉTODOS UNDO / REDO
+  deshacer() {
+    this.wsService.enviarDeshacer(this.salaId, this.miUsuario);
+  }
+
+  rehacer() {
+    this.wsService.enviarRehacer(this.salaId, this.miUsuario);
   }
 }

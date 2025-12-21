@@ -1,7 +1,9 @@
-<div style="width: 100vw; height: 100vh; overflow: hidden; position: relative; background: #ddd;">
+<div (touchstart)="$event.preventDefault()" 
+     style="width: 100vw; height: 100vh; overflow: hidden; position: relative; background: #ddd;">
 
   <canvas #pizarra 
           (contextmenu)="$event.preventDefault()"
+          (selectstart)="$event.preventDefault()"
           style="display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none;">
   </canvas>
 
@@ -13,7 +15,6 @@
     <svg width="24" height="24" viewBox="0 0 24 24" [style.fill]="cursor.value.color">
       <path d="M5.5 3.21l12.32 12.32-4.59 1.09 3.94 3.94-1.41 1.41-3.94-3.94-1.09 4.59z" stroke="white" stroke-width="1"/>
     </svg>
-    
     <div style="background: black; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 15px; margin-top: -5px; white-space: nowrap;">
       {{ cursor.value.usuario }}
     </div>
@@ -54,6 +55,11 @@
     <div style="display: flex; align-items: center; gap: 5px;">
       <span style="font-size: 10px;">Grosor</span>
       <input type="range" min="1" max="30" [(ngModel)]="grosor" style="cursor: pointer; width: 80px;">
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <button (click)="deshacer()" title="Deshacer" style="background: transparent; border: none; font-size: 20px; cursor: pointer;">↩️</button>
+      <button (click)="rehacer()" title="Rehacer" style="background: transparent; border: none; font-size: 20px; cursor: pointer;">↪️</button>
     </div>
 
     <div style="width: 1px; height: 30px; background: #eee;"></div>
