@@ -1,4 +1,4 @@
-# 🎨 MyWhiteboard UI - Cliente de Pizarra Infinita
+# 🎨 MyWhiteboard UI - Cliente de Pizarra
 
 Interfaz de usuario interactiva desarrollada en Angular para la creación y colaboración en pizarras digitales en tiempo real. Este cliente se enfoca en proporcionar una experiencia de dibujo fluida, permitiendo el trabajo colaborativo simultáneo con una arquitectura reactiva.
 
