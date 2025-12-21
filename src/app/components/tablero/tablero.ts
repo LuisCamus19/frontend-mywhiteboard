@@ -14,6 +14,8 @@ import { FormsModule } from '@angular/forms';
 import { Authservice } from '../../services/authservice';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { environment } from '../../../environments/environment';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-tablero',
@@ -37,6 +39,7 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
   private historialTrazos: any[] = [];
   private timeoutGuardado: any;
+  private subscriptions: Subscription = new Subscription(); // Para manejar fugas de memoria
 
   public salaId: string = '';
   public colorActual: string = '#000000';
@@ -48,7 +51,7 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private wsService: WebSocketservice,
     private route: ActivatedRoute,
-    private router: Router, // Inyectamos Router
+    private router: Router,
     private http: HttpClient,
     private authService: Authservice
   ) {
@@ -76,7 +79,11 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     if (this.salaId) this.reiniciarSala();
   }
 
-  ngOnDestroy() {}
+  ngOnDestroy() {
+    // 🔥 Limpiamos las suscripciones para que no se sigan escuchando mensajes al salir
+    this.subscriptions.unsubscribe();
+    if (this.timeoutGuardado) clearTimeout(this.timeoutGuardado);
+  }
 
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
@@ -99,26 +106,32 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
     this.wsService.conectar(this.salaId);
 
-    this.wsService.trazos$.subscribe((mensaje: any) => {
-      if (mensaje.accion === 'BORRAR_TODO') {
-        this.historialTrazos = [];
-        this.redibujarTodo();
-      } else {
-        this.historialTrazos.push(mensaje);
-        this.redibujarTodo();
-      }
-    });
+    // Guardamos las suscripciones para limpiarlas en ngOnDestroy
+    this.subscriptions.add(
+      this.wsService.trazos$.subscribe((mensaje: any) => {
+        if (!mensaje) return;
+        if (mensaje.accion === 'BORRAR_TODO') {
+          this.historialTrazos = [];
+          this.redibujarTodo();
+        } else {
+          this.historialTrazos.push(mensaje);
+          this.redibujarTodo();
+        }
+      })
+    );
 
-    this.wsService.cursores$.subscribe((mensaje: any) => {
-      if (mensaje.usuario === this.miUsuario) return;
-      this.cursoresRemotos.set(mensaje.usuario, mensaje);
-    });
+    this.subscriptions.add(
+      this.wsService.cursores$.subscribe((mensaje: any) => {
+        if (!mensaje || mensaje.usuario === this.miUsuario) return;
+        this.cursoresRemotos.set(mensaje.usuario, mensaje);
+      })
+    );
 
     this.cargarHistorial();
   }
 
   private cargarHistorial() {
-    this.http.get<any[]>(`http://localhost:8080/api/historial/${this.salaId}`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/api/historial/${this.salaId}`).subscribe({
       next: (lista) => {
         this.historialTrazos = lista;
         this.redibujarTodo();
@@ -230,10 +243,8 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     this.redibujarTodo();
   }
 
-  // --- NAVEGACIÓN ACTUALIZADA ---
   irAlHome() {
     this.guardarMiniaturaAhora();
-    // 🔥 CAMBIO AQUÍ: Redirigir a /dashboard
     this.router.navigate(['/dashboard']);
   }
 
@@ -248,11 +259,15 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   }
 
   guardarMiniaturaAhora() {
-    if (!this.canvasRef) return;
+    if (!this.canvasRef || !this.salaId) return;
     const imagenBase64 = this.canvasRef.nativeElement.toDataURL('image/jpeg', 0.5);
+
+    // 🔥 CORRECCIÓN: La ruta del Backend es /api/salas/{id}/imagen, NO /api/historial/...
     this.http
-      .put(`http://localhost:8080/api/salas/${this.salaId}/imagen`, { imagen: imagenBase64 })
-      .subscribe({ error: (err) => console.error(err) });
+      .put(`${environment.apiUrl}/api/salas/${this.salaId}/imagen`, { imagen: imagenBase64 })
+      .subscribe({
+        error: (err) => console.error('Error al guardar miniatura:', err),
+      });
   }
 
   activarBorrador() {

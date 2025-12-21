@@ -4,6 +4,7 @@ import importSockJS from 'sockjs-client';
 import { Observable, Subject } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import SockJS from 'sockjs-client';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -15,21 +16,24 @@ export class WebSocketservice {
   public cursores$ = new Subject<any>(); // 🔥 NUEVO: Canal de cursores
 
   conectar(salaId: string) {
+
+    const socketUrl = `${environment.apiUrl}/ws-pizarra`;
+
     this.clienteStomp = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws-pizarra'),
+      webSocketFactory: () => new SockJS(socketUrl),
       onConnect: () => {
-        // Suscripción a dibujos
+        console.log('✅ Conectado a WebSocket en la nube');
+
         this.clienteStomp.subscribe(`/tema/tablero/${salaId}`, (mensaje) => {
           this.trazos$.next(JSON.parse(mensaje.body));
         });
 
-        // 🔥 Suscripción a movimientos de mouse
         this.clienteStomp.subscribe(`/tema/cursores/${salaId}`, (mensaje) => {
           this.cursores$.next(JSON.parse(mensaje.body));
         });
       },
       onStompError: (frame) => {
-        console.error('Error en Broker: ' + frame.headers['message']);
+        console.error('❌ Error de STOMP:', frame);
       },
     });
     this.clienteStomp.activate();
