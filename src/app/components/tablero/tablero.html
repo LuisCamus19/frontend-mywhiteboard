@@ -1,6 +1,9 @@
 <div style="width: 100vw; height: 100vh; overflow: hidden; position: relative; background: #ddd;">
 
-  <canvas #pizarra style="display: block; width: 100%; height: 100%; cursor: crosshair;"></canvas>
+  <canvas #pizarra 
+          (contextmenu)="$event.preventDefault()"
+          style="display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none;">
+  </canvas>
 
   <div *ngFor="let cursor of cursoresRemotos | keyvalue" 
        [style.left.px]="(cursor.value.x * scale) + offsetX"

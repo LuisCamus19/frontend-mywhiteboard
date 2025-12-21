@@ -39,7 +39,7 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
   private historialTrazos: any[] = [];
   private timeoutGuardado: any;
-  private subscriptions: Subscription = new Subscription(); // Para manejar fugas de memoria
+  private subscriptions: Subscription = new Subscription();
 
   public salaId: string = '';
   public colorActual: string = '#000000';
@@ -67,22 +67,52 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
-    this.ctx = canvas.getContext('2d')!;
+    this.ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     this.resizeCanvas();
 
+    // --- EVENTOS DE MOUSE ---
     canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
     canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
     canvas.addEventListener('mouseup', () => this.onMouseUp());
     canvas.addEventListener('mouseout', () => this.onMouseUp());
+
+    // --- 🔥 EVENTOS TÁCTILES (iPad / Apple Pencil) ---
+    canvas.addEventListener('touchstart', (e) => this.handleTouch(e, 'start'), { passive: false });
+    canvas.addEventListener('touchmove', (e) => this.handleTouch(e, 'move'), { passive: false });
+    canvas.addEventListener('touchend', () => this.onMouseUp(), { passive: false });
+
     canvas.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
 
     if (this.salaId) this.reiniciarSala();
   }
 
   ngOnDestroy() {
-    // 🔥 Limpiamos las suscripciones para que no se sigan escuchando mensajes al salir
     this.subscriptions.unsubscribe();
     if (this.timeoutGuardado) clearTimeout(this.timeoutGuardado);
+  }
+
+  // 🔥 Método puente para traducir Touch a Mouse logic
+  private handleTouch(e: TouchEvent, tipo: 'start' | 'move') {
+    // Evita el scroll de la pantalla mientras se dibuja
+    if (!this.modoMover || (this.modoMover && this.arrastrando)) {
+      e.preventDefault();
+    }
+
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      // Creamos un evento sintético para reutilizar la lógica de coordenadas
+      const simulatedEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        preventDefault: () => {},
+      } as MouseEvent;
+
+      if (tipo === 'start') {
+        this.onMouseDown(simulatedEvent);
+      } else {
+        this.onMouseMove(simulatedEvent);
+      }
+    }
   }
 
   @HostListener('window:resize', ['$event'])
@@ -106,7 +136,6 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
     this.wsService.conectar(this.salaId);
 
-    // Guardamos las suscripciones para limpiarlas en ngOnDestroy
     this.subscriptions.add(
       this.wsService.trazos$.subscribe((mensaje: any) => {
         if (!mensaje) return;
@@ -218,7 +247,9 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   private onMouseUp() {
     this.dibujando = false;
     this.arrastrando = false;
-    this.canvasRef.nativeElement.style.cursor = this.modoMover ? 'grab' : 'crosshair';
+    if (this.canvasRef) {
+      this.canvasRef.nativeElement.style.cursor = this.modoMover ? 'grab' : 'crosshair';
+    }
     this.guardarMiniaturaAutomatica();
   }
 
@@ -262,7 +293,6 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     if (!this.canvasRef || !this.salaId) return;
     const imagenBase64 = this.canvasRef.nativeElement.toDataURL('image/jpeg', 0.5);
 
-    // 🔥 CORRECCIÓN: La ruta del Backend es /api/salas/{id}/imagen, NO /api/historial/...
     this.http
       .put(`${environment.apiUrl}/api/salas/${this.salaId}/imagen`, { imagen: imagenBase64 })
       .subscribe({
