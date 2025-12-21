@@ -76,7 +76,8 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     canvas.addEventListener('mouseup', () => this.onMouseUp());
     canvas.addEventListener('mouseout', () => this.onMouseUp());
 
-    // --- 🔥 EVENTOS TÁCTILES (iPad / Apple Pencil) ---
+    // --- EVENTOS TÁCTILES (iPad / Apple Pencil) ---
+    // Usamos passive: false para poder cancelar el scroll
     canvas.addEventListener('touchstart', (e) => this.handleTouch(e, 'start'), { passive: false });
     canvas.addEventListener('touchmove', (e) => this.handleTouch(e, 'move'), { passive: false });
     canvas.addEventListener('touchend', () => this.onMouseUp(), { passive: false });
@@ -91,26 +92,19 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     if (this.timeoutGuardado) clearTimeout(this.timeoutGuardado);
   }
 
-  // 🔥 Método puente para traducir Touch a Mouse logic
   private handleTouch(e: TouchEvent, tipo: 'start' | 'move') {
-    // Evita el scroll de la pantalla mientras se dibuja
     if (!this.modoMover || (this.modoMover && this.arrastrando)) {
-      e.preventDefault();
+      e.preventDefault(); // Evita scroll
     }
 
     if (e.touches.length > 0) {
       const touch = e.touches[0];
-      // Creamos un evento sintético para reutilizar la lógica de coordenadas
-      const simulatedEvent = {
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-        preventDefault: () => {},
-      } as MouseEvent;
-
+      // Pasamos el objeto Touch directamente como si fuera un MouseEvent
+      // (ambos tienen clientX y clientY)
       if (tipo === 'start') {
-        this.onMouseDown(simulatedEvent);
+        this.onMouseDown(touch as any);
       } else {
-        this.onMouseMove(simulatedEvent);
+        this.onMouseMove(touch as any);
       }
     }
   }
@@ -197,9 +191,15 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private onMouseDown(e: MouseEvent) {
-    this.prevX = e.clientX;
-    this.prevY = e.clientY;
+  private onMouseDown(e: any) {
+    // 'any' acepta MouseEvent o Touch
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+
+    // Aquí es donde sucede la magia: restamos la posición del canvas
+    // Esto asegura que (0,0) sea siempre la esquina del papel, no de la pantalla
+    this.prevX = e.clientX - rect.left;
+    this.prevY = e.clientY - rect.top;
+
     if (this.modoMover) {
       this.arrastrando = true;
       this.canvasRef.nativeElement.style.cursor = 'grabbing';
@@ -208,10 +208,14 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private onMouseMove(e: MouseEvent) {
-    const xActual = e.clientX;
-    const yActual = e.clientY;
+  private onMouseMove(e: any) {
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
 
+    // Calculamos coordenada LOCAL del canvas
+    const xActual = e.clientX - rect.left;
+    const yActual = e.clientY - rect.top;
+
+    // Convertimos a coordenada del MUNDO (considerando Zoom y Pan)
     const xMundo = (xActual - this.offsetX) / this.scale;
     const yMundo = (yActual - this.offsetY) / this.scale;
 
@@ -229,6 +233,7 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
       this.prevX = xActual;
       this.prevY = yActual;
     } else if (!this.modoMover && this.dibujando) {
+      // Usamos las coordenadas normalizadas
       const x0 = (this.prevX - this.offsetX) / this.scale;
       const y0 = (this.prevY - this.offsetY) / this.scale;
       const x1 = (xActual - this.offsetX) / this.scale;
@@ -239,6 +244,8 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
       this.wsService.enviarTrazo(this.salaId, trazo);
       this.historialTrazos.push(trazo);
       this.redibujarTodo();
+
+      // Actualizamos prevX/prevY para el siguiente segmento
       this.prevX = xActual;
       this.prevY = yActual;
     }
@@ -256,7 +263,12 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   private onWheel(e: WheelEvent) {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    this.aplicarZoom(delta, e.clientX, e.clientY);
+    // También normalizamos el zoom para que se centre en el mouse real
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    this.aplicarZoom(delta, mouseX, mouseY);
   }
 
   cambiarZoom(delta: number) {
