@@ -3,22 +3,26 @@
   background-color: var(--bg-app);
 }
 
-/* --- SIDEBAR FLEXIBLE (Arreglo iPad) --- */
+/* --- SIDEBAR FLEXIBLE (Fix para iPad/Mobile) --- */
 .app-sidebar {
   width: 280px;
   background: #fff;
   border-right: none;
   box-shadow: 1px 0 20px rgba(0,0,0,0.02);
+  /* 🔥 Estructura Flex Vertical */
   display: flex;
   flex-direction: column; 
   height: 100%;
+  max-height: 100vh;
 }
 
+/* Forzamos al contenedor interno de Material a usar Flexbox y NO tener scroll global */
 ::ng-deep .mat-drawer-inner-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: auto;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  overflow: hidden !important; /* 🔥 CLAVE: Evita que el footer se pierda al hacer scroll */
+  justify-content: space-between;
 }
 
 .sidebar-header {
@@ -26,7 +30,7 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  flex-shrink: 0;
+  flex-shrink: 0; /* No permitir que el header se encoja */
 }
 
 .logo-box {
@@ -44,10 +48,24 @@
   letter-spacing: -0.5px;
 }
 
+/* --- MENÚ SCROLLEABLE --- */
+/* Este es el único elemento que hará scroll si hay muchas salas */
 .nav-menu {
-  flex-grow: 1; 
+  flex-grow: 1; /* Ocupa todo el espacio disponible en el medio */
   padding-bottom: 20px;
+  
+  overflow-y: auto; 
+  min-height: 0; /* Truco de Flexbox para permitir el scroll interno */
+  
+  /* Estilizado estándar (Firefox, Chrome moderno) */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.1) transparent;
 }
+
+/* Scrollbar para Webkit (Safari, iOS, Chrome antiguo) - Esto silencia la advertencia funcionalmente */
+.nav-menu::-webkit-scrollbar { width: 6px; }
+.nav-menu::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.1); border-radius: 4px; }
+.nav-menu::-webkit-scrollbar-track { background: transparent; }
 
 .nav-menu a {
   margin: 5px 15px;
@@ -64,11 +82,13 @@
 
 .nav-menu mat-icon { margin-right: 12px; }
 
+/* --- FOOTER FIJO AL FONDO --- */
 .sidebar-footer {
   padding: 20px;
   border-top: 1px solid #f5f5f5;
   background: #fff;
-  flex-shrink: 0;
+  flex-shrink: 0; /* No permitir que el footer se encoja */
+  z-index: 5; /* Asegura que esté por encima */
 }
 
 .user-info {
@@ -92,7 +112,7 @@
 .main-content {
   background-color: var(--bg-app);
   height: 100vh;
-  overflow-y: auto;
+  overflow-y: auto; /* Scroll en el contenido principal */
   display: flex;
   flex-direction: column;
 }
@@ -163,23 +183,26 @@
   box-shadow: var(--shadow-hover);
 }
 
-/* 🔥 ESTILO FALTANTE: BADGE DE COLABORACIÓN 🔥 */
+/* Badge de Colaboración */
 .shared-badge {
   position: absolute;
   top: 15px;
   right: 15px;
-  z-index: 20; /* Encima de la imagen */
-  background-color: rgba(255, 255, 255, 0.9); /* Blanco translúcido */
-  backdrop-filter: blur(4px); /* Efecto vidrio */
-  color: #2962ff; /* Azul primario */
+  z-index: 20; 
+  background-color: rgba(255, 255, 255, 0.9);
+  
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  
+  color: #2962ff;
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 4px 10px;
-  border-radius: 20px; /* Forma de píldora */
+  border-radius: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  pointer-events: none; /* Dejar pasar el clic a la tarjeta */
+  pointer-events: none;
 }
 
 .card-preview {
