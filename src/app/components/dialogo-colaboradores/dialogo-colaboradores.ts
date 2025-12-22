@@ -90,7 +90,7 @@ export class DialogoColaboradores {
   busco = false;
 
   constructor(
-    private salasService: SalasService,
+    private salasService: Salasservice,
     public dialogRef: MatDialogRef<DialogoColaboradores>,
     @Inject(MAT_DIALOG_DATA) public data: { salaId: string },
     private snackBar: MatSnackBar
