@@ -20,26 +20,27 @@ const authGuard = () => {
 };
 
 export const routes: Routes = [
-  // 1. Si la ruta está vacía, redirigir a dashboard
+  // 1. Redirección inicial
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
 
   // 2. Ruta Login (Pública)
   { path: 'login', component: Login },
 
-  // 3. Ruta Dashboard (Protegida) -> Aquí renderizamos el HomeComponent
+  // 3. Ruta Dashboard (Protegida)
   {
     path: 'dashboard',
     component: Home,
     canActivate: [authGuard],
   },
 
-  // 4. Ruta Pizarra (Protegida)
+  // 4. Ruta Tablero (Protegida)
+  // 🔥 CORRECCIÓN AQUÍ: Cambiamos 'pizarra' por 'tablero' para coincidir con el home.component.ts
   {
-    path: 'pizarra/:id',
+    path: 'tablero/:id',
     component: Tablero,
     canActivate: [authGuard],
   },
 
-  // 5. Cualquier otra cosa -> redirigir a dashboard (o a una página 404 si tuvieras)
+  // 5. Comodín (Ruta no encontrada) -> Dashboard
   { path: '**', redirectTo: 'dashboard' },
 ];
