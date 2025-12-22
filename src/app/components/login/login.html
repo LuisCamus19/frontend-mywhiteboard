@@ -1,57 +1,48 @@
 <div class="login-container">
-  
-  <mat-card class="login-card">
+  <div class="login-content">
     
-    <mat-card-header>
-      <div mat-card-avatar>
-        <mat-icon style="font-size: 40px; height: 40px; width: 40px; color: #3f51b5;">
-          {{ isLoginMode ? 'lock' : 'person_add' }}
-        </mat-icon>
-      </div>
-      <mat-card-title>
-        {{ isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta' }}
-      </mat-card-title>
-      <div class="subtitle">
-        {{ isLoginMode ? 'Ingresa para continuar colaborando' : 'Regístrate para empezar a crear' }}
-      </div>
-    </mat-card-header>
+    <div class="brand-logo">
+      <mat-icon>gesture</mat-icon>
+    </div>
 
-    <mat-card-content>
-      <form (ngSubmit)="submit()">
-        
-        <mat-form-field appearance="outline">
-          <mat-label>Nombre de Usuario</mat-label>
-          <input matInput 
-                 [(ngModel)]="usuario.username" 
-                 name="username" 
-                 required 
-                 autocomplete="off">
-          <mat-icon matSuffix>person</mat-icon>
-        </mat-form-field>
+    <mat-card class="modern-card">
+      <mat-card-header>
+        <mat-card-title>
+          {{ isLoginMode ? 'Bienvenido de nuevo' : 'Crea tu cuenta' }}
+        </mat-card-title>
+        <div class="subtitle">
+          {{ isLoginMode ? 'Ingresa para continuar creando' : 'Únete a la colaboración visual' }}
+        </div>
+      </mat-card-header>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Contraseña</mat-label>
-          <input matInput 
-                 [(ngModel)]="usuario.password" 
-                 name="password" 
-                 type="password" 
-                 required>
-          <mat-icon matSuffix>key</mat-icon>
-        </mat-form-field>
+      <mat-card-content>
+        <form (ngSubmit)="submit()">
+          
+          <mat-form-field appearance="outline" class="custom-field">
+            <mat-label>Usuario</mat-label>
+            <input matInput [(ngModel)]="usuario.username" name="username" required autocomplete="off">
+            <mat-icon matSuffix>person_outline</mat-icon>
+          </mat-form-field>
 
-        <button mat-raised-button type="submit">
-          {{ isLoginMode ? 'ENTRAR' : 'REGISTRARSE' }}
+          <mat-form-field appearance="outline" class="custom-field">
+            <mat-label>Contraseña</mat-label>
+            <input matInput [(ngModel)]="usuario.password" name="password" type="password" required>
+            <mat-icon matSuffix>lock_outline</mat-icon>
+          </mat-form-field>
+
+          <button mat-flat-button color="primary" type="submit" class="btn-block">
+            {{ isLoginMode ? 'Iniciar Sesión' : 'Registrarse' }}
+          </button>
+
+        </form>
+      </mat-card-content>
+
+      <mat-card-footer>
+        <button mat-button (click)="toggleMode()" class="btn-toggle">
+          {{ isLoginMode ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Ingresa' }}
         </button>
+      </mat-card-footer>
+    </mat-card>
 
-      </form>
-    </mat-card-content>
-
-    <mat-card-actions>
-      <button mat-button (click)="toggleMode()">
-        {{ isLoginMode ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión' }}
-      </button>
-    </mat-card-actions>
-
-  </mat-card>
-  
+  </div>
 </div>

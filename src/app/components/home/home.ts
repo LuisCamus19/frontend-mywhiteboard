@@ -1,21 +1,18 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router } from '@angular/router';
 import { Authservice } from '../../services/authservice';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialog } from '@angular/material/dialog';
-import { DialogoColaboradores } from '../dialogo-colaboradores/dialogo-colaboradores';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
-import { environment } from '../../../environments/environment';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { Salasservice } from '../../services/salasservice';
 
 @Component({
   selector: 'app-home',
@@ -35,78 +32,82 @@ import { environment } from '../../../environments/environment';
   styleUrl: './home.css',
 })
 export class Home implements OnInit {
-  misSalas: any[] = [];
-  salasCompartidas: any[] = [];
-  nuevoNombre: string = '';
-  seccionActual: 'MIS_SALAS' | 'COMPARTIDAS' = 'MIS_SALAS';
+  @ViewChild('sidenav') sidenav!: MatSidenav;
 
-  // ✅ CAMBIO: Usar la URL del environment en lugar de localhost
-  private URL_API = `${environment.apiUrl}/api/salas`;
+  public misSalas: any[] = [];
+  public salasCompartidas: any[] = [];
+  public seccionActual: string = 'MIS_SALAS';
+  public nuevoNombre: string = '';
+  public usuarioActual: string = '';
+
+  // Variables Responsive
+  public isMobile: boolean = false;
 
   constructor(
-    private http: HttpClient,
     private router: Router,
     private authService: Authservice,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {}
-
-  ngOnInit() {
-    this.cargarMisSalas();
-    this.cargarCompartidas();
+    private salasService: Salasservice,
+    private breakpointObserver: BreakpointObserver
+  ) {
+    this.usuarioActual = this.authService.getUsername();
   }
 
-  cargarMisSalas() {
-    this.http.get<any[]>(this.URL_API).subscribe({
-      next: (data) => (this.misSalas = data),
-      error: (err) => console.error('Error cargando mis salas', err),
-    });
+  ngOnInit() {
+    this.cargarSalas();
+    this.cargarCompartidas();
+
+    // 🔥 Detectar cambios de pantalla (Móvil vs Escritorio)
+    // Breakpoints.Handset incluye teléfonos y tablets en vertical
+    this.breakpointObserver
+      .observe([Breakpoints.Handset, Breakpoints.TabletPortrait])
+      .subscribe((result) => {
+        this.isMobile = result.matches;
+      });
+  }
+
+  cargarSalas() {
+    this.salasService.listarMisSalas().subscribe((data) => (this.misSalas = data));
   }
 
   cargarCompartidas() {
-    this.http.get<any[]>(`${this.URL_API}/compartidas`).subscribe({
-      next: (data) => (this.salasCompartidas = data),
-      error: (err) => console.error('Error cargando compartidas', err),
-    });
+    this.salasService.listarCompartidas().subscribe((data) => (this.salasCompartidas = data));
   }
 
   crearSala() {
     if (!this.nuevoNombre.trim()) return;
-    this.http.post<any>(this.URL_API, { titulo: this.nuevoNombre }).subscribe((sala) => {
-      this.router.navigate(['/pizarra', sala.id]);
+    const nuevaSala = { titulo: this.nuevoNombre };
+    this.salasService.crearSala(nuevaSala).subscribe((salaCreada) => {
+      this.misSalas.push(salaCreada);
+      this.nuevoNombre = '';
     });
   }
 
-  irASala(id: string) {
-    this.router.navigate(['/pizarra', id]);
+  borrarSala(salaId: string, event: Event) {
+    event.stopPropagation();
+    if (confirm('¿Estás seguro de eliminar esta pizarra?')) {
+      this.salasService.borrarSala(salaId).subscribe(() => {
+        this.misSalas = this.misSalas.filter((s) => s.id !== salaId);
+      });
+    }
+  }
+
+  irASala(salaId: string) {
+    this.router.navigate(['/tablero', salaId]);
   }
 
   abrirInvitar(salaId: string, event: Event) {
     event.stopPropagation();
-    this.dialog.open(DialogoColaboradores, {
-      width: '400px',
-      data: { salaId: salaId },
-    });
-  }
-
-  borrarSala(id: string, event: Event) {
-    event.stopPropagation();
-    if (!confirm('⚠️ ¿Borrar pizarra permanentemente?')) return;
-
-    // ✅ CAMBIO: Aquí también usamos environment.apiUrl
-    this.http.delete(`${environment.apiUrl}/api/salas/${id}`).subscribe({
-      next: () => {
-        this.snackBar.open('🗑️ Eliminada', 'Ok', { duration: 3000 });
-        this.cargarMisSalas();
-      },
-      error: (err) => {
-        console.error(err);
-        this.snackBar.open('❌ Error al borrar', 'Cerrar', { duration: 3000 });
-      },
-    });
+    const username = prompt('Ingresa el usuario a invitar:');
+    if (username) {
+      this.salasService.agregarColaborador(salaId, username).subscribe({
+        next: () => alert('✅ Invitación enviada'),
+        error: () => alert('❌ Error: Usuario no encontrado o error de red'),
+      });
+    }
   }
 
   logout() {
     this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }
