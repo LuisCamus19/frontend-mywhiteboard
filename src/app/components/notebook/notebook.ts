@@ -289,13 +289,33 @@ export class Notebook implements OnInit, AfterViewInit {
   setupEventosCanvas() {
     const c = this.canvasRef.nativeElement;
 
-    // Eventos de Mouse (Ya corregidos)
-    c.addEventListener('mousedown', (e) => this.start(e.clientX, e.clientY));
-    c.addEventListener('mousemove', (e) => this.move(e.clientX, e.clientY));
-    c.addEventListener('mouseup', () => this.end());
-    c.addEventListener('mouseout', () => this.end());
+    // --- 1. DIBUJO PROFESIONAL (Pointer Events) ---
+    // Detecta si es 'pen' (Apple Pencil), 'mouse' o 'touch'
+    c.addEventListener('pointerdown', (e: PointerEvent) => {
+      // Solo iniciamos dibujo si es Lápiz o clic izquierdo del Mouse
+      if (e.pointerType === 'pen' || (e.pointerType === 'mouse' && e.button === 0)) {
+        this.start(e.clientX, e.clientY);
+        // Evitamos que el toque del lápiz intente hacer scroll
+        if (e.cancelable) e.preventDefault();
+      }
+      // Si es 'touch' (dedo), no llamamos a start(), permitiendo el scroll nativo
+    });
 
-    // Rueda del mouse con Ctrl
+    c.addEventListener('pointermove', (e: PointerEvent) => {
+      if (this.dibujando && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
+        this.move(e.clientX, e.clientY);
+      }
+    });
+
+    c.addEventListener('pointerup', (e: PointerEvent) => {
+      if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+        this.end();
+      }
+    });
+
+    c.addEventListener('pointercancel', () => this.end());
+
+    // --- 2. ZOOM CON RUEDA (Ctrl + Mouse) ---
     c.addEventListener(
       'wheel',
       (e: WheelEvent) => {
@@ -308,19 +328,18 @@ export class Notebook implements OnInit, AfterViewInit {
       { passive: false }
     );
 
-    // EVENTOS TÁCTILES (Pinch Zoom)
+    // --- 3. MULTITOUCH (Pinch Zoom con 2 dedos) ---
     c.addEventListener(
       'touchstart',
       (e: TouchEvent) => {
-        if (e.cancelable) e.preventDefault(); // 🔥 Evita que el navegador procese el toque
-
-        if (e.touches.length === 1) {
-          const touch = e.touches[0];
-          this.start(touch.clientX, touch.clientY);
-        } else if (e.touches.length === 2) {
+        // Si son 2 dedos, bloqueamos todo para hacer zoom
+        if (e.touches.length === 2) {
+          if (e.cancelable) e.preventDefault();
           this.initialPinchDistance = this.getDistance(e.touches);
           this.initialScale = this.escala;
         }
+        // NOTA: No manejamos e.touches.length === 1 aquí porque
+        // de eso se encarga 'pointerdown' arriba solo para el lápiz.
       },
       { passive: false }
     );
@@ -329,33 +348,26 @@ export class Notebook implements OnInit, AfterViewInit {
       'touchmove',
       (e: TouchEvent) => {
         if (e.touches.length === 2) {
-          // Procesamos el zoom
-          e.preventDefault();
+          if (e.cancelable) e.preventDefault();
           const currentDistance = this.getDistance(e.touches);
           const zoomFactor = currentDistance / this.initialPinchDistance;
-
-          // Aplicamos la nueva escala basada en la inicial del gesto
           const nuevaEscala = this.initialScale * zoomFactor;
+
           if (nuevaEscala >= 0.2 && nuevaEscala <= 3) {
             this.escala = nuevaEscala;
           }
-        } else if (e.touches.length === 1 && this.dibujando) {
-          // Movimiento de dibujo
-          const touch = e.touches[0];
-          this.move(touch.clientX, touch.clientY);
         }
       },
       { passive: false }
     );
 
     c.addEventListener('touchend', (e: TouchEvent) => {
-      this.end();
       if (e.touches.length < 2) {
         this.initialPinchDistance = 0;
       }
     });
 
-    // Bloquea el menú contextual (clic derecho o pulsación larga)
+    // --- 4. BLOQUEOS DE SISTEMA ---
     c.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
