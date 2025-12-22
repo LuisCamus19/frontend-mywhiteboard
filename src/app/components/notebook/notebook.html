@@ -1,14 +1,15 @@
 <div class="notebook-container">
   
   <div class="toolbar">
+    
     <div class="left-group">
-      <button mat-icon-button (click)="salir()" matTooltip="Volver al inicio">
+      <button mat-icon-button (click)="salir()" matTooltip="Volver al dashboard">
         <mat-icon>arrow_back</mat-icon>
       </button>
+      <span class="notebook-title">{{ cuaderno?.nombre || 'Cargando...' }}</span>
     </div>
     
     <div class="tools-group">
-      
       <button mat-icon-button 
               [class.active]="herramientaActual === 'LAPIZ'" 
               (click)="seleccionarHerramienta('LAPIZ')"
@@ -27,13 +28,14 @@
               [class.active]="herramientaActual === 'GOMA'" 
               (click)="seleccionarHerramienta('GOMA')"
               matTooltip="Borrador">
-        <mat-icon>cleaning_services</mat-icon> </button>
+        <mat-icon>cleaning_services</mat-icon>
+      </button>
 
       <div class="separator"></div>
 
-      <div class="color-wrapper" [style.background-color]="colorSeleccionado">
+      <div class="color-wrapper" [style.background-color]="colorSeleccionado" matTooltip="Cambiar color">
         <input type="color" [(ngModel)]="colorSeleccionado" 
-               (change)="herramientaActual = herramientaActual === 'GOMA' ? 'LAPIZ' : herramientaActual">
+               (change)="herramientaActual = (herramientaActual === 'GOMA' ? 'LAPIZ' : herramientaActual)">
       </div>
 
       <div class="slider-wrapper">
@@ -43,13 +45,31 @@
         </mat-slider>
         <mat-icon class="big-dot">circle</mat-icon>
       </div>
+    </div>
 
+    <div class="zoom-controls">
+      <button mat-icon-button (click)="ajustarZoom(-0.1)" matTooltip="Alejar">
+        <mat-icon>zoom_out</mat-icon>
+      </button>
+      <span class="zoom-percent">{{ (escala * 100).toFixed(0) }}%</span>
+      <button mat-icon-button (click)="ajustarZoom(0.1)" matTooltip="Acercar">
+        <mat-icon>zoom_in</mat-icon>
+      </button>
+      <button mat-icon-button (click)="escala = 0.8" matTooltip="Restablecer">
+        <mat-icon>restart_alt</mat-icon>
+      </button>
     </div>
 
     <div class="actions-group">
-      <button mat-icon-button (click)="deshacer()" matTooltip="Deshacer (Local)">
+      <button mat-icon-button (click)="exportarAPDF()" matTooltip="Exportar cuaderno a PDF" color="primary">
+        <mat-icon>picture_as_pdf</mat-icon>
+      </button>
+
+      <button mat-icon-button (click)="deshacer()" matTooltip="Deshacer trazo">
         <mat-icon>undo</mat-icon>
       </button>
+
+      <div class="separator"></div>
 
       <div class="page-controls">
         <button mat-icon-button (click)="irAPagina(idxPagina - 1)" [disabled]="idxPagina === 0">
@@ -67,8 +87,14 @@
   </div>
 
   <div class="desk">
-    <div class="paper-sheet">
-      <canvas #hojaCanvas></canvas>
+    <div class="paper-sheet" 
+         [ngClass]="cuaderno?.formato?.toLowerCase() || 'a4'"
+         [ngStyle]="getStylesFondo()"
+         [style.transform]="'scale(' + escala + ')'">
+      
+      <canvas #hojaCanvas class="canvas-estilo"></canvas>
+      
     </div>
   </div>
+
 </div>

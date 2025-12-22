@@ -15,6 +15,7 @@ import { Authservice } from '../../services/authservice';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subscription } from 'rxjs';
+import { jsPDF } from 'jspdf';
 
 // Tipos de herramientas disponibles
 type Herramienta = 'LAPIZ' | 'RESALTADOR' | 'GOMA';
@@ -37,28 +38,26 @@ export class Notebook implements OnInit, AfterViewInit {
   @ViewChild('hojaCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   private ctx!: CanvasRenderingContext2D;
 
+  private initialPinchDistance: number = 0;
+  private initialScale: number = 0;
+
+  escala: number = 0.8;
   cuadernoId!: number;
   cuaderno?: Cuaderno;
   paginas: Pagina[] = [];
-
-  // Paginación
   idxPagina: number = 0;
   paginaActual!: Pagina;
   trazosPagina: Trazo[] = [];
 
-  // --- HERRAMIENTAS Y ESTADO ---
   herramientaActual: Herramienta = 'LAPIZ';
   dibujando = false;
-
   colorSeleccionado = '#000000';
   grosor = 3;
 
   private prevX = 0;
   private prevY = 0;
   private miUsuario = '';
-
   private currentGrupoId: string = '';
-
   private subs: Subscription = new Subscription();
 
   constructor(
@@ -72,14 +71,53 @@ export class Notebook implements OnInit, AfterViewInit {
     this.miUsuario = this.authService.getUsername();
   }
 
+  getStylesFondo() {
+    const estilo = this.paginaActual?.estiloFondo;
+    if (estilo === 'CUADRICULADO') {
+      return {
+        'background-image':
+          'linear-gradient(#e0e0e0 1px, transparent 1px), linear-gradient(90deg, #e0e0e0 1px, transparent 1px)',
+        'background-size': '25px 25px',
+      };
+    }
+    if (estilo === 'RAYADO') {
+      return {
+        'background-image': 'linear-gradient(#e0e0e0 1px, transparent 1px)',
+        'background-size': '100% 30px',
+      };
+    }
+    if (estilo === 'PUNTOS') {
+      return {
+        'background-image': 'radial-gradient(#e0e0e0 1px, transparent 1px)',
+        'background-size': '25px 25px',
+      };
+    }
+    return { 'background-color': '#ffffff' };
+  }
+
+  ajustarZoom(delta: number) {
+    const nuevaEscala = this.escala + delta;
+    if (nuevaEscala >= 0.2 && nuevaEscala <= 3) {
+      this.escala = nuevaEscala;
+    }
+  }
+
+  private getCoords(clientX: number, clientY: number) {
+    const canvas = this.canvasRef.nativeElement;
+    const rect = canvas.getBoundingClientRect();
+
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height),
+    };
+  }
+
   ngOnInit() {
     this.route.paramMap.subscribe((p) => {
       this.cuadernoId = Number(p.get('id'));
       this.cargarTodo();
-
       const canalSocket = 'cuaderno-' + this.cuadernoId;
       this.wsService.conectar(canalSocket);
-
       this.subs.add(
         this.wsService.trazos$.subscribe((trazo: Trazo) => {
           if (trazo.paginaId === this.paginaActual?.id && trazo.usuario !== this.miUsuario) {
@@ -113,13 +151,10 @@ export class Notebook implements OnInit, AfterViewInit {
 
   irAPagina(index: number) {
     if (index < 0 || index >= this.paginas.length) return;
-
     this.idxPagina = index;
     this.paginaActual = this.paginas[index];
-
     this.trazosPagina = [];
     setTimeout(() => {
-      // Es vital que redibujar() use this.paginaActual.estiloFondo
       this.redibujar();
       this.cargarTrazosDePagina();
     }, 10);
@@ -137,7 +172,6 @@ export class Notebook implements OnInit, AfterViewInit {
 
   nuevaPagina() {
     const estiloHeredado = this.paginaActual.estiloFondo || Estilo.BLANCO;
-
     this.pageService.create(this.cuadernoId, estiloHeredado).subscribe((p) => {
       this.paginas.push(p);
       this.irAPagina(this.paginas.length - 1);
@@ -146,155 +180,225 @@ export class Notebook implements OnInit, AfterViewInit {
 
   seleccionarHerramienta(h: Herramienta) {
     this.herramientaActual = h;
-    if (h === 'RESALTADOR') {
-      this.grosor = 15;
-    } else if (h === 'LAPIZ') {
-      this.grosor = 3;
-    } else if (h === 'GOMA') {
-      this.grosor = 20;
-    }
+    if (h === 'RESALTADOR') this.grosor = 15;
+    else if (h === 'LAPIZ') this.grosor = 3;
+    else if (h === 'GOMA') this.grosor = 20;
   }
-
-  // --- LÓGICA DE DIBUJO ---
 
   redibujar() {
     if (!this.canvasRef) return;
     const canvas = this.canvasRef.nativeElement;
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    const esA3 = this.cuaderno?.formato === 'A3';
+    canvas.width = esA3 ? 1131 : 800;
+    canvas.height = esA3 ? 1600 : 1131;
 
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
-    this.dibujarFondo(this.paginaActual?.estiloFondo || Estilo.BLANCO, canvas.width, canvas.height);
-
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
 
     this.trazosPagina.forEach((t) => {
       this.ctx.beginPath();
-      this.ctx.strokeStyle = t.color;
       this.ctx.lineWidth = t.grosor;
-
-      // Ajuste visual para resaltador
-      if (t.color.length > 7) {
-        this.ctx.globalCompositeOperation = 'multiply';
+      if (t.color === 'GOMA') {
+        this.ctx.globalCompositeOperation = 'destination-out';
+        this.ctx.strokeStyle = 'rgba(0,0,0,1)';
       } else {
-        this.ctx.globalCompositeOperation = 'source-over';
+        this.ctx.globalCompositeOperation = t.color.length > 7 ? 'multiply' : 'source-over';
+        this.ctx.strokeStyle = t.color;
       }
-
-      const x0 = t.xInicial ?? 0;
-      const y0 = t.yInicial ?? 0;
-      const x1 = t.xFinal ?? 0;
-      const y1 = t.yFinal ?? 0;
-
-      this.ctx.moveTo(x0, y0);
-      this.ctx.lineTo(x1, y1);
+      this.ctx.moveTo(t.xInicial ?? 0, t.yInicial ?? 0);
+      this.ctx.lineTo(t.xFinal ?? 0, t.yFinal ?? 0);
       this.ctx.stroke();
+      this.ctx.globalCompositeOperation = 'source-over';
     });
   }
 
-  dibujarFondo(estilo: any, w: number, h: number) {
-    this.ctx.strokeStyle = '#e0e0e0';
-    this.ctx.fillStyle = '#e0e0e0'; // Necesario para los puntos
-    this.ctx.lineWidth = 1;
-    this.ctx.beginPath();
+  async exportarAPDF() {
+    if (!this.paginas || this.paginas.length === 0) return;
+    const esA3 = this.cuaderno?.formato === 'A3';
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'px',
+      format: esA3 ? 'a3' : 'a4',
+    });
+    const pdfWidth = doc.internal.pageSize.getWidth();
+    const pdfHeight = doc.internal.pageSize.getHeight();
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d')!;
+    tempCanvas.width = this.canvasRef.nativeElement.width;
+    tempCanvas.height = this.canvasRef.nativeElement.height;
 
-    // Convertimos a string por seguridad si viene como Enum
+    for (let i = 0; i < this.paginas.length; i++) {
+      const pagina = this.paginas[i];
+      const trazos = (await this.pageService.getTrazosByPagina(pagina.id).toPromise()) || [];
+      tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+      tempCtx.fillStyle = '#ffffff';
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+      this.dibujarFondoEnContexto(tempCtx, pagina.estiloFondo, tempCanvas.width, tempCanvas.height);
+      tempCtx.lineCap = 'round';
+      tempCtx.lineJoin = 'round';
+      trazos.forEach((t) => {
+        tempCtx.beginPath();
+        tempCtx.strokeStyle = t.color;
+        tempCtx.lineWidth = t.grosor;
+        tempCtx.globalCompositeOperation = t.color.length > 7 ? 'multiply' : 'source-over';
+        tempCtx.moveTo(t.xInicial ?? 0, t.yInicial ?? 0);
+        tempCtx.lineTo(t.xFinal ?? 0, t.yFinal ?? 0);
+        tempCtx.stroke();
+      });
+      const imgData = tempCanvas.toDataURL('image/jpeg', 0.95);
+      if (i > 0) doc.addPage();
+      doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    }
+    doc.save(`Cuaderno_${this.cuaderno?.nombre || 'export'}.pdf`);
+  }
+
+  private dibujarFondoEnContexto(ctx: CanvasRenderingContext2D, estilo: any, w: number, h: number) {
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.fillStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
     const estiloStr = estilo?.toString();
-
     if (estiloStr === 'RAYADO') {
       for (let y = 50; y < h; y += 30) {
-        this.ctx.moveTo(0, y);
-        this.ctx.lineTo(w, y);
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
       }
-      this.ctx.stroke();
+      ctx.stroke();
     } else if (estiloStr === 'CUADRICULADO') {
       for (let x = 0; x < w; x += 25) {
-        this.ctx.moveTo(x, 0);
-        this.ctx.lineTo(x, h);
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
       }
       for (let y = 0; y < h; y += 25) {
-        this.ctx.moveTo(0, y);
-        this.ctx.lineTo(w, y);
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
       }
-      this.ctx.stroke();
+      ctx.stroke();
     } else if (estiloStr === 'PUNTOS') {
-      const espacio = 25; // Distancia entre puntos
-      for (let x = espacio; x < w; x += espacio) {
-        for (let y = espacio; y < h; y += espacio) {
-          this.ctx.moveTo(x, y);
-          // Dibujamos un mini círculo de 1px de radio
-          this.ctx.arc(x, y, 1, 0, Math.PI * 2);
+      for (let x = 25; x < w; x += 25) {
+        for (let y = 25; y < h; y += 25) {
+          ctx.moveTo(x, y);
+          ctx.arc(x, y, 1, 0, Math.PI * 2);
         }
       }
-      this.ctx.fill(); // Rellenamos los puntos
+      ctx.fill();
     }
   }
 
   setupEventosCanvas() {
     const c = this.canvasRef.nativeElement;
-    c.addEventListener('mousedown', (e) => this.start(e.offsetX, e.offsetY));
-    c.addEventListener('mousemove', (e) => this.move(e.offsetX, e.offsetY));
+
+    // Eventos de Mouse (Ya corregidos)
+    c.addEventListener('mousedown', (e) => this.start(e.clientX, e.clientY));
+    c.addEventListener('mousemove', (e) => this.move(e.clientX, e.clientY));
     c.addEventListener('mouseup', () => this.end());
     c.addEventListener('mouseout', () => this.end());
 
+    // Rueda del mouse con Ctrl
+    c.addEventListener(
+      'wheel',
+      (e: WheelEvent) => {
+        if (e.ctrlKey) {
+          e.preventDefault();
+          const delta = e.deltaY > 0 ? -0.05 : 0.05;
+          this.ajustarZoom(delta);
+        }
+      },
+      { passive: false }
+    );
+
+    // 🔥 EVENTOS TÁCTILES (Pinch Zoom)
     c.addEventListener(
       'touchstart',
-      (e) => {
-        if (e.cancelable) e.preventDefault();
-        const r = c.getBoundingClientRect();
-        this.start(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+      (e: TouchEvent) => {
+        if (e.touches.length === 2) {
+          // Iniciamos el gesto de pinza
+          e.preventDefault();
+          this.initialPinchDistance = this.getDistance(e.touches);
+          this.initialScale = this.escala;
+        } else if (e.touches.length === 1) {
+          // Dibujo normal con un dedo
+          const touch = e.touches[0];
+          this.start(touch.clientX, touch.clientY);
+        }
       },
       { passive: false }
     );
 
     c.addEventListener(
       'touchmove',
-      (e) => {
-        if (e.cancelable) e.preventDefault();
-        const r = c.getBoundingClientRect();
-        this.move(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+      (e: TouchEvent) => {
+        if (e.touches.length === 2) {
+          // Procesamos el zoom
+          e.preventDefault();
+          const currentDistance = this.getDistance(e.touches);
+          const zoomFactor = currentDistance / this.initialPinchDistance;
+
+          // Aplicamos la nueva escala basada en la inicial del gesto
+          const nuevaEscala = this.initialScale * zoomFactor;
+          if (nuevaEscala >= 0.2 && nuevaEscala <= 3) {
+            this.escala = nuevaEscala;
+          }
+        } else if (e.touches.length === 1 && this.dibujando) {
+          // Movimiento de dibujo
+          const touch = e.touches[0];
+          this.move(touch.clientX, touch.clientY);
+        }
       },
       { passive: false }
     );
 
-    c.addEventListener('touchend', () => this.end());
+    c.addEventListener('touchend', (e: TouchEvent) => {
+      this.end();
+      if (e.touches.length < 2) {
+        this.initialPinchDistance = 0;
+      }
+    });
   }
 
-  start(x: number, y: number) {
-    this.dibujando = true;
-    this.prevX = x;
-    this.prevY = y;
+  // Función auxiliar matemática para calcular distancia entre dos puntos
+  private getDistance(touches: TouchList): number {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
 
+  start(clientX: number, clientY: number) {
+    const coords = this.getCoords(clientX, clientY);
+    this.dibujando = true;
+    this.prevX = coords.x;
+    this.prevY = coords.y;
     this.currentGrupoId = crypto.randomUUID();
   }
 
-  move(x: number, y: number) {
+  move(clientX: number, clientY: number) {
     if (!this.dibujando) return;
+    const coords = this.getCoords(clientX, clientY);
+    const x = coords.x;
+    const y = coords.y;
 
     let colorFinal = this.colorSeleccionado;
-
     if (this.herramientaActual === 'GOMA') {
-      colorFinal = '#ffffff';
+      colorFinal = 'GOMA';
+      this.ctx.globalCompositeOperation = 'destination-out';
     } else if (this.herramientaActual === 'RESALTADOR') {
       if (colorFinal.length === 7) colorFinal += '50';
-    }
-
-    // Dibujo visual rápido
-    this.ctx.beginPath();
-    this.ctx.strokeStyle = colorFinal;
-    this.ctx.lineWidth = this.grosor;
-    if (colorFinal.length > 7) {
       this.ctx.globalCompositeOperation = 'multiply';
     } else {
       this.ctx.globalCompositeOperation = 'source-over';
     }
+
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = colorFinal === 'GOMA' ? 'rgba(0,0,0,1)' : colorFinal;
+    this.ctx.lineWidth = this.grosor;
     this.ctx.moveTo(this.prevX, this.prevY);
     this.ctx.lineTo(x, y);
     this.ctx.stroke();
+    this.ctx.globalCompositeOperation = 'source-over';
 
     const nuevoTrazo: Trazo = {
       grupoId: this.currentGrupoId,
-
       usuario: this.miUsuario,
       color: colorFinal,
       grosor: this.grosor,
@@ -305,10 +409,8 @@ export class Notebook implements OnInit, AfterViewInit {
       yFinal: y,
       paginaId: this.paginaActual.id,
     };
-
     this.trazosPagina.push(nuevoTrazo);
     this.wsService.enviarTrazo('cuaderno-' + this.cuadernoId, nuevoTrazo);
-
     this.prevX = x;
     this.prevY = y;
   }
@@ -316,20 +418,14 @@ export class Notebook implements OnInit, AfterViewInit {
   end() {
     this.dibujando = false;
   }
-
   deshacer() {
     if (this.trazosPagina.length === 0) return;
-
     const ultimoTrazo = this.trazosPagina[this.trazosPagina.length - 1];
     const grupoABorrar = ultimoTrazo.grupoId;
-
     if (!grupoABorrar) return;
-
     this.trazosPagina = this.trazosPagina.filter((t) => t.grupoId !== grupoABorrar);
-
     this.redibujar();
   }
-
   salir() {
     this.router.navigate(['/dashboard']);
   }
