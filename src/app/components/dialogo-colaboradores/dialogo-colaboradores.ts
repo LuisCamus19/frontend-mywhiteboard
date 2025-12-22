@@ -41,7 +41,7 @@ import { Salasservice } from '../../services/salasservice';
             matInput
             [(ngModel)]="filtro"
             (keyup.enter)="buscar()"
-            placeholder="Ej: maria"
+            placeholder="Ej: luis"
             autocomplete="off"
           />
           <mat-icon matSuffix (click)="buscar()" style="cursor: pointer">search</mat-icon>
@@ -54,6 +54,7 @@ import { Salasservice } from '../../services/salasservice';
         <mat-list>
           <mat-list-item *ngFor="let user of resultados" class="user-item">
             <mat-icon matListItemIcon class="avatar-icon">account_circle</mat-icon>
+
             <div matListItemTitle class="user-name">{{ user.username }}</div>
             <div matListItemLine class="user-email">Usuario registrado</div>
 
@@ -76,7 +77,7 @@ import { Salasservice } from '../../services/salasservice';
 
         <div *ngIf="!busco" class="empty-state initial">
           <mat-icon>group_add</mat-icon>
-          <p>Busca amigos para trabajar juntos en tiempo real.</p>
+          <p>Busca amigos para trabajar juntos.</p>
         </div>
       </div>
     </mat-dialog-content>
@@ -89,7 +90,7 @@ export class DialogoColaboradores {
   busco = false;
 
   constructor(
-    private salasService: Salasservice,
+    private salasService: SalasService,
     public dialogRef: MatDialogRef<DialogoColaboradores>,
     @Inject(MAT_DIALOG_DATA) public data: { salaId: string },
     private snackBar: MatSnackBar
@@ -100,7 +101,6 @@ export class DialogoColaboradores {
 
     this.salasService.buscarUsuarios(this.filtro).subscribe({
       next: (res: any) => {
-        // 'any' temporal si no tienes interfaz Usuario
         this.resultados = res;
         this.busco = true;
       },
@@ -112,8 +112,6 @@ export class DialogoColaboradores {
     this.salasService.agregarColaborador(this.data.salaId, user.username).subscribe({
       next: () => {
         this.mostrarNotificacion(`¡${user.username} invitado!`, '📩');
-        // Opcional: Cerrar diálogo tras invitar
-        // this.dialogRef.close();
       },
       error: () => this.mostrarNotificacion('No se pudo invitar', '⚠️'),
     });
