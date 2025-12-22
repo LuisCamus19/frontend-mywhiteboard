@@ -150,18 +150,17 @@ button.active {
 .paper-sheet {
   background-color: white;
   position: relative;
-  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2); /* Sombra más profunda para realismo */
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
   z-index: 1;
   transform-origin: top center;
-  /* transition removida para evitar desfase en las coordenadas durante el escalado */
-  will-change: transform; /* Optimiza el renderizado del zoom */
-
+  will-change: transform;
+  /* Bloqueo total de gestos nativos en la hoja */
+  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
-
 /* Tamaños internos fijos */
 .paper-sheet.a4 {
   width: 800px;
@@ -178,10 +177,7 @@ button.active {
   display: block;
   background-color: transparent !important;
   cursor: crosshair;
-  background-attachment: local;
-  touch-action: manipulation !important;
-
-  touch-action: pan-x pan-y !important;
+  touch-action: none !important; 
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;

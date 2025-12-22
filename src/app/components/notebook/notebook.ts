@@ -289,64 +289,53 @@ export class Notebook implements OnInit, AfterViewInit {
   setupEventosCanvas() {
     const c = this.canvasRef.nativeElement;
 
-    // --- 1. DIBUJO PROFESIONAL CON BLOQUEO DE CAPTURA ---
-    c.addEventListener('pointerdown', (e: PointerEvent) => {
-      // Solo iniciamos dibujo si es Lápiz o Mouse
-      if (e.pointerType === 'pen' || (e.pointerType === 'mouse' && e.button === 0)) {
-        // 🔥 CLAVE 1: Capturamos el puntero para que el iPad no nos "robe" el gesto
-        // Esto obliga a que todos los eventos sigan llegando al canvas hasta que sueltes.
-        c.setPointerCapture(e.pointerId);
-
-        this.start(e.clientX, e.clientY);
-
-        // 🔥 CLAVE 2: Bloqueamos la acción por defecto del sistema inmediatamente
-        if (e.cancelable) e.preventDefault();
-      }
-    });
-
-    c.addEventListener('pointermove', (e: PointerEvent) => {
-      if (this.dibujando && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
-        // Bloqueamos scroll mientras el lápiz se mueve
-        if (e.cancelable) e.preventDefault();
-        this.move(e.clientX, e.clientY);
-      }
-    });
-
-    c.addEventListener('pointerup', (e: PointerEvent) => {
-      if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
-        // 🔥 CLAVE 3: Liberamos el puntero al terminar
-        c.releasePointerCapture(e.pointerId);
-        this.end();
-      }
-    });
-
-    // Este evento es el que te está dando problemas actualmente (el iPad cancela el dibujo)
-    c.addEventListener('pointercancel', (e: PointerEvent) => {
-      if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
-        c.releasePointerCapture(e.pointerId);
-        this.end();
-      }
-    });
-
-    // --- 2. ZOOM CON RUEDA (Ctrl + Mouse) ---
+    // --- 1. DIBUJO CON PEN/MOUSE (Pointer Events) ---
     c.addEventListener(
-      'wheel',
-      (e: WheelEvent) => {
-        if (e.ctrlKey) {
+      'pointerdown',
+      (e: PointerEvent) => {
+        // Solo dibujamos con Lápiz o Mouse izquierdo
+        if (e.pointerType === 'pen' || (e.pointerType === 'mouse' && e.button === 0)) {
           e.preventDefault();
-          const delta = e.deltaY > 0 ? -0.05 : 0.05;
-          this.ajustarZoom(delta);
+          e.stopPropagation();
+
+          c.setPointerCapture(e.pointerId); // Secuestramos el puntero
+          this.start(e.clientX, e.clientY);
         }
       },
       { passive: false }
     );
 
-    // --- 3. MULTITOUCH (Pinch Zoom con 2 dedos) ---
+    c.addEventListener(
+      'pointermove',
+      (e: PointerEvent) => {
+        if (this.dibujando && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
+          e.preventDefault();
+          this.move(e.clientX, e.clientY);
+        }
+      },
+      { passive: false }
+    );
+
+    c.addEventListener('pointerup', (e: PointerEvent) => {
+      if (this.dibujando) {
+        c.releasePointerCapture(e.pointerId);
+        this.end();
+      }
+    });
+
+    c.addEventListener('pointercancel', (e: PointerEvent) => {
+      if (this.dibujando) {
+        c.releasePointerCapture(e.pointerId);
+        this.end();
+      }
+    });
+
+    // --- 2. ZOOM Y SCROLL CON DEDOS (Touch Events) ---
     c.addEventListener(
       'touchstart',
       (e: TouchEvent) => {
         if (e.touches.length === 2) {
-          if (e.cancelable) e.preventDefault();
+          e.preventDefault();
           this.initialPinchDistance = this.getDistance(e.touches);
           this.initialScale = this.escala;
         }
@@ -358,7 +347,7 @@ export class Notebook implements OnInit, AfterViewInit {
       'touchmove',
       (e: TouchEvent) => {
         if (e.touches.length === 2) {
-          if (e.cancelable) e.preventDefault();
+          e.preventDefault();
           const currentDistance = this.getDistance(e.touches);
           const zoomFactor = currentDistance / this.initialPinchDistance;
           const nuevaEscala = this.initialScale * zoomFactor;
@@ -370,11 +359,18 @@ export class Notebook implements OnInit, AfterViewInit {
       { passive: false }
     );
 
-    c.addEventListener('touchend', () => {
-      this.initialPinchDistance = 0;
-    });
+    // --- 3. RUEDA MOUSE ---
+    c.addEventListener(
+      'wheel',
+      (e: WheelEvent) => {
+        if (e.ctrlKey) {
+          e.preventDefault();
+          this.ajustarZoom(e.deltaY > 0 ? -0.05 : 0.05);
+        }
+      },
+      { passive: false }
+    );
 
-    // --- 4. BLOQUEOS DE SISTEMA ---
     c.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
