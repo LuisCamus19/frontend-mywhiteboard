@@ -179,7 +179,7 @@ button.active {
   background-color: transparent !important;
   cursor: crosshair;
   background-attachment: local;
-  touch-action: none;
+  touch-action: manipulation !important;
 
   touch-action: pan-x pan-y !important;
   -webkit-user-select: none;

@@ -289,31 +289,44 @@ export class Notebook implements OnInit, AfterViewInit {
   setupEventosCanvas() {
     const c = this.canvasRef.nativeElement;
 
-    // --- 1. DIBUJO PROFESIONAL (Pointer Events) ---
-    // Detecta si es 'pen' (Apple Pencil), 'mouse' o 'touch'
+    // --- 1. DIBUJO PROFESIONAL CON BLOQUEO DE CAPTURA ---
     c.addEventListener('pointerdown', (e: PointerEvent) => {
-      // Solo iniciamos dibujo si es Lápiz o clic izquierdo del Mouse
+      // Solo iniciamos dibujo si es Lápiz o Mouse
       if (e.pointerType === 'pen' || (e.pointerType === 'mouse' && e.button === 0)) {
+        // 🔥 CLAVE 1: Capturamos el puntero para que el iPad no nos "robe" el gesto
+        // Esto obliga a que todos los eventos sigan llegando al canvas hasta que sueltes.
+        c.setPointerCapture(e.pointerId);
+
         this.start(e.clientX, e.clientY);
-        // Evitamos que el toque del lápiz intente hacer scroll
+
+        // 🔥 CLAVE 2: Bloqueamos la acción por defecto del sistema inmediatamente
         if (e.cancelable) e.preventDefault();
       }
-      // Si es 'touch' (dedo), no llamamos a start(), permitiendo el scroll nativo
     });
 
     c.addEventListener('pointermove', (e: PointerEvent) => {
       if (this.dibujando && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
+        // Bloqueamos scroll mientras el lápiz se mueve
+        if (e.cancelable) e.preventDefault();
         this.move(e.clientX, e.clientY);
       }
     });
 
     c.addEventListener('pointerup', (e: PointerEvent) => {
       if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+        // 🔥 CLAVE 3: Liberamos el puntero al terminar
+        c.releasePointerCapture(e.pointerId);
         this.end();
       }
     });
 
-    c.addEventListener('pointercancel', () => this.end());
+    // Este evento es el que te está dando problemas actualmente (el iPad cancela el dibujo)
+    c.addEventListener('pointercancel', (e: PointerEvent) => {
+      if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+        c.releasePointerCapture(e.pointerId);
+        this.end();
+      }
+    });
 
     // --- 2. ZOOM CON RUEDA (Ctrl + Mouse) ---
     c.addEventListener(
@@ -332,14 +345,11 @@ export class Notebook implements OnInit, AfterViewInit {
     c.addEventListener(
       'touchstart',
       (e: TouchEvent) => {
-        // Si son 2 dedos, bloqueamos todo para hacer zoom
         if (e.touches.length === 2) {
           if (e.cancelable) e.preventDefault();
           this.initialPinchDistance = this.getDistance(e.touches);
           this.initialScale = this.escala;
         }
-        // NOTA: No manejamos e.touches.length === 1 aquí porque
-        // de eso se encarga 'pointerdown' arriba solo para el lápiz.
       },
       { passive: false }
     );
@@ -352,7 +362,6 @@ export class Notebook implements OnInit, AfterViewInit {
           const currentDistance = this.getDistance(e.touches);
           const zoomFactor = currentDistance / this.initialPinchDistance;
           const nuevaEscala = this.initialScale * zoomFactor;
-
           if (nuevaEscala >= 0.2 && nuevaEscala <= 3) {
             this.escala = nuevaEscala;
           }
@@ -361,10 +370,8 @@ export class Notebook implements OnInit, AfterViewInit {
       { passive: false }
     );
 
-    c.addEventListener('touchend', (e: TouchEvent) => {
-      if (e.touches.length < 2) {
-        this.initialPinchDistance = 0;
-      }
+    c.addEventListener('touchend', () => {
+      this.initialPinchDistance = 0;
     });
 
     // --- 4. BLOQUEOS DE SISTEMA ---
