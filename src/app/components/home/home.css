@@ -9,18 +9,16 @@
   background: #fff;
   border-right: none;
   box-shadow: 1px 0 20px rgba(0,0,0,0.02);
-  /* 🔥 CLAVE: Usamos Flexbox vertical */
   display: flex;
   flex-direction: column; 
   height: 100%;
 }
 
-/* El contenedor interno del mat-sidenav a veces necesita esto */
 ::ng-deep .mat-drawer-inner-container {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: auto; /* Permite scroll si la pantalla es muy pequeña */
+  overflow: auto;
 }
 
 .sidebar-header {
@@ -28,7 +26,7 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  flex-shrink: 0; /* No encoger header */
+  flex-shrink: 0;
 }
 
 .logo-box {
@@ -46,7 +44,6 @@
   letter-spacing: -0.5px;
 }
 
-/* Menú: Ocupa todo el espacio disponible */
 .nav-menu {
   flex-grow: 1; 
   padding-bottom: 20px;
@@ -67,12 +64,11 @@
 
 .nav-menu mat-icon { margin-right: 12px; }
 
-/* Footer: Se queda al final */
 .sidebar-footer {
   padding: 20px;
   border-top: 1px solid #f5f5f5;
-  background: #fff; /* Asegura fondo blanco al hacer scroll */
-  flex-shrink: 0; /* No encoger footer */
+  background: #fff;
+  flex-shrink: 0;
 }
 
 .user-info {
@@ -90,20 +86,17 @@
   border-radius: 10px;
 }
 
-.btn-logout:hover {
-  background-color: #fff1f0;
-}
+.btn-logout:hover { background-color: #fff1f0; }
 
 /* --- MAIN CONTENT --- */
 .main-content {
   background-color: var(--bg-app);
   height: 100vh;
-  overflow-y: auto; /* Scroll en el contenido principal */
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
-/* Wrapper para dar padding */
 .content-wrapper {
   padding: 40px 60px;
   max-width: 1400px;
@@ -138,23 +131,14 @@
 }
 
 .create-bar input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 16px;
-  margin: 0 15px;
-  color: var(--text-dark);
-  min-width: 0; /* Fix flexbox input overflow */
+  flex: 1; border: none; outline: none; font-size: 16px; margin: 0 15px; color: var(--text-dark); min-width: 0;
 }
 
 .create-bar button {
-  border-radius: 12px !important;
-  height: 44px;
-  padding: 0 25px;
-  flex-shrink: 0;
+  border-radius: 12px !important; height: 44px; padding: 0 25px; flex-shrink: 0;
 }
 
-/* Grid Layout Responsive */
+/* Grid Layout */
 .grid-layout {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -169,7 +153,7 @@
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   cursor: pointer;
-  position: relative;
+  position: relative; /* Necesario para posicionar el badge */
   border: 1px solid rgba(0,0,0,0.03);
   box-shadow: 0 4px 6px rgba(0,0,0,0.02);
 }
@@ -177,6 +161,25 @@
 .apple-card:hover {
   transform: translateY(-8px);
   box-shadow: var(--shadow-hover);
+}
+
+/* 🔥 ESTILO FALTANTE: BADGE DE COLABORACIÓN 🔥 */
+.shared-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 20; /* Encima de la imagen */
+  background-color: rgba(255, 255, 255, 0.9); /* Blanco translúcido */
+  backdrop-filter: blur(4px); /* Efecto vidrio */
+  color: #2962ff; /* Azul primario */
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px; /* Forma de píldora */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  pointer-events: none; /* Dejar pasar el clic a la tarjeta */
 }
 
 .card-preview {
@@ -209,16 +212,15 @@
 .card-actions {
   display: flex; justify-content: flex-end;
   margin-top: 15px;
-  opacity: 0; /* Oculto por defecto en desktop */
+  opacity: 0;
   transition: 0.2s;
 }
 
-/* En touch devices (hover no fiable), mostrar acciones siempre o mejorar UX */
 @media (hover: hover) {
   .apple-card:hover .card-actions { opacity: 1; }
 }
 @media (hover: none) {
-  .card-actions { opacity: 1; margin-top: 10px;} /* Visible siempre en tablet/mobile */
+  .card-actions { opacity: 1; margin-top: 10px;}
 }
 
 /* Empty State */
@@ -227,46 +229,19 @@
 
 /* Mobile Toolbar */
 .mobile-toolbar {
-  display: flex;
-  align-items: center;
-  padding: 10px 20px;
-  background: white;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  display: flex; align-items: center; padding: 10px 20px;
+  background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  position: sticky; top: 0; z-index: 10;
 }
+.mobile-title { font-weight: 700; font-size: 18px; margin-left: 10px; color: var(--primary); }
 
-.mobile-title {
-  font-weight: 700;
-  font-size: 18px;
-  margin-left: 10px;
-  color: var(--primary);
-}
-
-/* 🔥 RESPONSIVE MEDIA QUERIES 🔥 */
-
-@media (max-width: 992px) {
-  .content-wrapper { padding: 30px 40px; }
-}
-
+/* RESPONSIVE */
+@media (max-width: 992px) { .content-wrapper { padding: 30px 40px; } }
 @media (max-width: 768px) {
   .content-wrapper { padding: 20px; }
-  
   .content-header h1 { font-size: 26px; }
-  
-  .grid-layout {
-    grid-template-columns: repeat(auto-fill, minmax(100%, 1fr)); /* 1 columna en móvil */
-    gap: 20px;
-  }
-  
-  .create-bar {
-    flex-direction: column; /* Input arriba, botón abajo en móvil muy pequeño */
-    gap: 10px;
-    align-items: stretch;
-    padding: 15px;
-  }
-  
+  .grid-layout { grid-template-columns: 1fr; gap: 20px; }
+  .create-bar { flex-direction: column; gap: 10px; align-items: stretch; padding: 15px; }
   .create-bar input { margin: 0; text-align: center; margin-bottom: 10px; }
   .search-icon { display: none; }
 }
