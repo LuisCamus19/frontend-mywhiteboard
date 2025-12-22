@@ -15,6 +15,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Salasservice } from '../../services/salasservice';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DialogoColaboradores } from '../dialogo-colaboradores/dialogo-colaboradores';
+import { FileExplorer } from '../file-explorer/file-explorer';
 
 @Component({
   selector: 'app-home',
@@ -31,6 +32,7 @@ import { DialogoColaboradores } from '../dialogo-colaboradores/dialogo-colaborad
     MatListModule,
     MatSnackBarModule,
     MatDialogModule,
+    FileExplorer,
   ],
   templateUrl: './home.html',
   styleUrl: './home.css',

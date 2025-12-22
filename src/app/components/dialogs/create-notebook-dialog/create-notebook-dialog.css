@@ -1,0 +1,45 @@
+.dialog-container { width: 100%; max-width: 600px; padding: 10px; }
+h2 { text-align: center; color: #333; font-weight: 500; margin-bottom: 10px; }
+
+.content-wrapper { display: flex; gap: 20px; margin-bottom: 10px; }
+
+/* PREVIEW IZQUIERDO */
+.preview-section {
+  width: 160px; background: #f5f5f5; border-radius: 12px; padding: 20px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.notebook-preview {
+  width: 100px; height: 140px; border-radius: 4px 10px 10px 4px;
+  position: relative; box-shadow: 4px 4px 12px rgba(0,0,0,0.2);
+  display: flex; align-items: center; justify-content: center;
+  transition: background-color 0.2s;
+}
+.spine {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 12px;
+  background: rgba(255,255,255,0.2); border-right: 1px solid rgba(0,0,0,0.1);
+}
+.label-box {
+  background: white; width: 80%; padding: 8px 4px; text-align: center;
+  border-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: 8px;
+}
+.preview-title { font-size: 10px; font-weight: bold; text-transform: uppercase; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.preview-caption { margin-top: 10px; color: #888; font-size: 12px; }
+.format-icon { position: absolute; bottom: 5px; right: 5px; color: rgba(255,255,255,0.5); font-size: 16px; }
+
+/* FORMULARIO DERECHO */
+.form-section { flex: 1; display: flex; flex-direction: column; }
+.full-width { width: 100%; margin-bottom: 5px; }
+.half-width { width: 48%; }
+.section-label { font-size: 13px; color: #666; margin: 5px 0; font-weight: 500; }
+
+.color-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+.color-circle {
+  width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s; border: 2px solid transparent;
+}
+.color-circle:hover { transform: scale(1.1); }
+.color-circle.selected { border-color: #333; transform: scale(1.1); }
+.color-circle mat-icon { font-size: 16px; color: white; width: 16px; height: 16px; }
+
+.row-controls { display: flex; justify-content: space-between; gap: 10px; }

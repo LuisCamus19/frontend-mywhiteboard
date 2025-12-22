@@ -1,0 +1,26 @@
+.dialog-container {
+  min-width: 350px;
+  padding: 10px;
+}
+
+h2 {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.dialog-msg {
+  color: #666;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Ajustes de Material para que se vea más limpio */
+::ng-deep .mat-mdc-dialog-surface {
+  border-radius: 16px !important; /* Bordes redondeados estilo iOS/GoodNotes */
+}

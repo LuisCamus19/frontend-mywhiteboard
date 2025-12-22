@@ -1,0 +1,60 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>Nuevo Cuaderno</h2>
+  
+  <div class="content-wrapper">
+    
+    <div class="preview-section">
+      <div class="notebook-preview" [style.background-color]="colorSeleccionado">
+        <div class="spine"></div>
+        <div class="label-box">
+          <span class="preview-title">{{ nombre || 'Sin Título' }}</span>
+        </div>
+        <mat-icon class="format-icon">book</mat-icon>
+      </div>
+      <small class="preview-caption">Vista Previa</small>
+    </div>
+
+    <div class="form-section">
+      
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Título</mat-label>
+        <input matInput [(ngModel)]="nombre" placeholder="Ej. Matemáticas" cdkFocusInitial autocomplete="off">
+      </mat-form-field>
+
+      <label class="section-label">Color de Portada</label>
+      <div class="color-grid">
+        <div *ngFor="let color of coloresDisponibles" 
+             class="color-circle" 
+             [style.background-color]="color"
+             [class.selected]="color === colorSeleccionado"
+             (click)="colorSeleccionado = color">
+           <mat-icon *ngIf="color === colorSeleccionado">check</mat-icon>
+        </div>
+      </div>
+
+      <div class="row-controls">
+        <mat-form-field appearance="outline" class="half-width">
+          <mat-label>Tamaño</mat-label>
+          <mat-select [(ngModel)]="formatoSeleccionado">
+            <mat-option *ngFor="let f of formatos" [value]="f">{{ f }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="half-width">
+          <mat-label>Papel</mat-label>
+          <mat-select [(ngModel)]="estiloSeleccionado">
+            <mat-option *ngFor="let e of estilos" [value]="e">{{ e }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+    </div>
+  </div>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="cancelar()">Cancelar</button>
+    <button mat-flat-button color="primary" (click)="crear()" [disabled]="!nombre.trim()">
+      Crear
+    </button>
+  </mat-dialog-actions>
+</div>

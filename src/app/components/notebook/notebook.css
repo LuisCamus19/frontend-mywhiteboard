@@ -1,0 +1,67 @@
+.notebook-container { height: 100vh; display: flex; flex-direction: column; background: #e0e0e0; }
+
+/* TOOLBAR */
+.toolbar {
+  height: 60px; background: white; padding: 0 15px;
+  display: flex; justify-content: space-between; align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08); z-index: 10;
+}
+
+.left-group, .actions-group { display: flex; align-items: center; gap: 5px; }
+
+/* HERRAMIENTAS CENTRADAS */
+.tools-group {
+  display: flex; align-items: center; gap: 8px;
+  background: #f5f5f5;
+  padding: 5px 15px;
+  border-radius: 30px; /* Forma de píldora */
+}
+
+/* BOTÓN ACTIVO */
+button.active {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.separator {
+  width: 1px; height: 24px; background: #ddd; margin: 0 8px;
+}
+
+/* COLOR PICKER PERSONALIZADO */
+.color-wrapper {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid #ddd; overflow: hidden; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.color-wrapper input { opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+
+/* SLIDER GROSOR */
+.slider-wrapper {
+  display: flex; align-items: center; gap: 5px; width: 140px; margin-left: 10px;
+}
+.small-dot { font-size: 8px; width: 8px; height: 8px; color: #888; }
+.big-dot { font-size: 16px; width: 16px; height: 16px; color: #888; }
+
+/* PAGINADOR */
+.page-controls {
+  display: flex; align-items: center; background: #fff; 
+  border: 1px solid #eee; border-radius: 8px; margin-left: 10px;
+}
+.paginator { font-size: 13px; font-weight: 500; color: #555; padding: 0 5px; }
+.btn-add { color: #1976d2; }
+
+/* ESCRITORIO Y PAPEL */
+.desk {
+  flex: 1; display: flex; justify-content: center; align-items: center;
+  overflow: hidden; padding: 20px;
+}
+
+.paper-sheet {
+  background: white;
+  aspect-ratio: 210 / 297; 
+  height: 90%; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  border-radius: 2px;
+}
+
+canvas { width: 100%; height: 100%; cursor: crosshair; touch-action: none; }

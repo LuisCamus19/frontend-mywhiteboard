@@ -16,6 +16,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Subscription } from 'rxjs';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { Trazo } from '../../models/trazo';
 
 @Component({
   selector: 'app-tablero',
@@ -37,7 +38,8 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   public offsetY = 0;
   public scale = 1;
 
-  private historialTrazos: any[] = [];
+  private historialTrazos: Trazo[] = [];
+
   private timeoutGuardado: any;
   private subscriptions: Subscription = new Subscription();
 
@@ -48,7 +50,6 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   public cursoresRemotos: Map<string, any> = new Map();
   private miUsuario: string = '';
 
-  // NUEVO: ID del trazo actual (para agrupar puntos)
   private currentGrupoId: string = '';
 
   constructor(
@@ -70,10 +71,8 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
-    // willReadFrequently optimiza la lectura para guardar imágenes
     this.ctx = canvas.getContext('2d', { willReadFrequently: true })!;
 
-    // Configuración inicial (Retina Display)
     this.resizeCanvas();
 
     // --- EVENTOS DE MOUSE ---
@@ -97,7 +96,6 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     if (this.timeoutGuardado) clearTimeout(this.timeoutGuardado);
   }
 
-  // Puente para eventos táctiles
   private handleTouch(e: TouchEvent, tipo: 'start' | 'move') {
     if (!this.modoMover || (this.modoMover && this.arrastrando)) {
       e.preventDefault();
@@ -117,7 +115,6 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     this.resizeCanvas();
   }
 
-  // Ajuste DPI (Retina)
   resizeCanvas() {
     if (!this.canvasRef) return;
     const canvas = this.canvasRef.nativeElement;
@@ -140,23 +137,19 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
     this.wsService.conectar(this.salaId);
 
-    // Suscripción a Trazos y Eventos
     this.subscriptions.add(
       this.wsService.trazos$.subscribe((mensaje: any) => {
         if (!mensaje) return;
 
-        // LÓGICA DE ACTUALIZACIÓN
         if (mensaje.accion === 'BORRAR_TODO') {
           this.historialTrazos = [];
           this.redibujarTodo();
         } else if (mensaje.accion === 'RECARGAR') {
-          // Si alguien hizo Undo/Redo, recargamos el historial limpio desde la DB
           this.historialTrazos = [];
-          this.redibujarTodo(); // Limpia visualmente
-          this.cargarHistorial(); // Pide datos frescos
+          this.redibujarTodo();
+          this.cargarHistorial();
         } else {
-          // Es un trazo normal llegando en tiempo real
-          this.historialTrazos.push(mensaje);
+          this.historialTrazos.push(mensaje as Trazo);
           this.redibujarTodo();
         }
       })
@@ -173,7 +166,7 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private cargarHistorial() {
-    this.http.get<any[]>(`${environment.apiUrl}/api/historial/${this.salaId}`).subscribe({
+    this.http.get<Trazo[]>(`${environment.apiUrl}/api/historial/${this.salaId}`).subscribe({
       next: (lista) => {
         this.historialTrazos = lista;
         this.redibujarTodo();
@@ -199,10 +192,11 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
 
     this.historialTrazos.forEach((trazo) => {
       this.ctx.beginPath();
-      const x0 = trazo.xInicial ?? trazo.x0;
-      const y0 = trazo.yInicial ?? trazo.y0;
-      const x1 = trazo.xFinal ?? trazo.x1;
-      const y1 = trazo.yFinal ?? trazo.y1;
+
+      const x0 = trazo.xInicial ?? trazo.x0 ?? 0;
+      const y0 = trazo.yInicial ?? trazo.y0 ?? 0;
+      const x1 = trazo.xFinal ?? trazo.x1 ?? 0;
+      const y1 = trazo.yFinal ?? trazo.y1 ?? 0;
 
       this.ctx.moveTo(x0, y0);
       this.ctx.lineTo(x1, y1);
@@ -225,7 +219,6 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
       this.canvasRef.nativeElement.style.cursor = 'grabbing';
     } else {
       this.dibujando = true;
-      // Generamos un ID único para este trazo continuo
       this.currentGrupoId = crypto.randomUUID();
     }
   }
@@ -252,21 +245,29 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
       this.prevX = xActual;
       this.prevY = yActual;
     } else if (!this.modoMover && this.dibujando) {
+      // Coordenadas locales calculadas
       const x0 = (this.prevX - this.offsetX) / this.scale;
       const y0 = (this.prevY - this.offsetY) / this.scale;
       const x1 = (xActual - this.offsetX) / this.scale;
       const y1 = (yActual - this.offsetY) / this.scale;
 
-      const trazo = {
-        x0,
-        y0,
-        x1,
-        y1,
-        color: this.colorActual,
-        grosor: this.grosor,
-        // Enviamos metadata para el Undo/Redo
+      const trazo: Trazo = {
         grupoId: this.currentGrupoId,
         usuario: this.miUsuario,
+        color: this.colorActual,
+        grosor: this.grosor,
+
+        // --- Campos obligatorios nuevos ---
+        visible: true,
+
+        // --- Mapeo correcto de nombres ---
+        xInicial: x0,
+        yInicial: y0,
+        xFinal: x1,
+        yFinal: y1,
+
+        salaId: this.salaId,
+        paginaId: undefined, // En pizarra infinita es undefined o null
       };
 
       this.wsService.enviarTrazo(this.salaId, trazo);
@@ -311,8 +312,6 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     this.redibujarTodo();
   }
 
-  // --- BOTONES Y ACCIONES ---
-
   irAlHome() {
     this.guardarMiniaturaAhora();
     this.router.navigate(['/dashboard']);
@@ -356,7 +355,6 @@ export class Tablero implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // NUEVOS MÉTODOS UNDO / REDO
   deshacer() {
     this.wsService.enviarDeshacer(this.salaId, this.miUsuario);
   }

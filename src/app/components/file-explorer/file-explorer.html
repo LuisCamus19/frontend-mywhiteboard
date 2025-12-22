@@ -1,0 +1,79 @@
+<div class="explorer-wrapper fade-in">
+  
+  <div class="explorer-topbar">
+    
+    <div class="breadcrumbs">
+      <div *ngFor="let crumb of rutaNavegacion; let i = index; let isLast = last" class="crumb-item">
+        <span (click)="!isLast && irAMigaja(i)" [class.active]="isLast" [class.link]="!isLast">
+          {{ crumb.nombre }}
+        </span>
+        <mat-icon *ngIf="!isLast" class="separator">chevron_right</mat-icon>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button mat-stroked-button (click)="crearCarpeta()">
+        <mat-icon>create_new_folder</mat-icon> Carpeta
+      </button>
+      <button mat-flat-button color="primary" (click)="crearCuaderno()">
+        <mat-icon>book</mat-icon> Cuaderno
+      </button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="files-grid" *ngIf="!loading">
+    
+    <div class="file-card folder" *ngFor="let c of carpetas" (click)="entrarEnCarpeta(c)">
+      <div class="icon-area">
+        <mat-icon class="folder-icon">folder</mat-icon>
+      </div>
+      
+      <div class="info-area">
+        <span class="name" matTooltip="{{c.nombre}}">{{ c.nombre }}</span>
+        <button mat-icon-button [matMenuTriggerFor]="menuC" (click)="$event.stopPropagation()">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+      </div>
+
+      <mat-menu #menuC="matMenu">
+        <button mat-menu-item (click)="borrarCarpeta(c.id, $event)">
+          <mat-icon color="warn">delete</mat-icon> Eliminar
+        </button>
+      </mat-menu>
+    </div>
+
+    <div class="file-card notebook" *ngFor="let n of cuadernos" (click)="abrirCuaderno(n.id)">
+      <div class="cover-area" [style.background-color]="n.colorPortada">
+        <div class="spine"></div> <div class="label-box">
+          <span class="notebook-title">{{ n.nombre }}</span>
+        </div>
+      </div>
+      
+      <div class="info-area">
+        <span class="name" matTooltip="{{n.nombre}}">{{ n.nombre }}</span>
+        <button mat-icon-button [matMenuTriggerFor]="menuN" (click)="$event.stopPropagation()">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+      </div>
+
+      <mat-menu #menuN="matMenu">
+        <button mat-menu-item (click)="borrarCuaderno(n.id, $event)">
+          <mat-icon color="warn">delete</mat-icon> Eliminar
+        </button>
+      </mat-menu>
+    </div>
+
+  </div>
+
+  <div *ngIf="!loading && carpetas.length === 0 && cuadernos.length === 0" class="empty-state">
+    <mat-icon>sentiment_satisfied</mat-icon>
+    <p>Esta carpeta está vacía</p>
+    <small>Crea un cuaderno para empezar</small>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <p>Cargando archivos...</p>
+  </div>
+</div>

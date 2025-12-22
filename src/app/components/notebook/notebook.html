@@ -1,0 +1,74 @@
+<div class="notebook-container">
+  
+  <div class="toolbar">
+    <div class="left-group">
+      <button mat-icon-button (click)="salir()" matTooltip="Volver al inicio">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+    </div>
+    
+    <div class="tools-group">
+      
+      <button mat-icon-button 
+              [class.active]="herramientaActual === 'LAPIZ'" 
+              (click)="seleccionarHerramienta('LAPIZ')"
+              matTooltip="Lápiz">
+        <mat-icon>edit</mat-icon>
+      </button>
+
+      <button mat-icon-button 
+              [class.active]="herramientaActual === 'RESALTADOR'" 
+              (click)="seleccionarHerramienta('RESALTADOR')"
+              matTooltip="Resaltador">
+        <mat-icon>brush</mat-icon>
+      </button>
+
+      <button mat-icon-button 
+              [class.active]="herramientaActual === 'GOMA'" 
+              (click)="seleccionarHerramienta('GOMA')"
+              matTooltip="Borrador">
+        <mat-icon>cleaning_services</mat-icon> </button>
+
+      <div class="separator"></div>
+
+      <div class="color-wrapper" [style.background-color]="colorSeleccionado">
+        <input type="color" [(ngModel)]="colorSeleccionado" 
+               (change)="herramientaActual = herramientaActual === 'GOMA' ? 'LAPIZ' : herramientaActual">
+      </div>
+
+      <div class="slider-wrapper">
+        <mat-icon class="small-dot">circle</mat-icon>
+        <mat-slider min="1" max="30" step="1" discrete>
+          <input matSliderThumb [(ngModel)]="grosor">
+        </mat-slider>
+        <mat-icon class="big-dot">circle</mat-icon>
+      </div>
+
+    </div>
+
+    <div class="actions-group">
+      <button mat-icon-button (click)="deshacer()" matTooltip="Deshacer (Local)">
+        <mat-icon>undo</mat-icon>
+      </button>
+
+      <div class="page-controls">
+        <button mat-icon-button (click)="irAPagina(idxPagina - 1)" [disabled]="idxPagina === 0">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <span class="paginator">{{ idxPagina + 1 }} / {{ paginas.length }}</span>
+        <button mat-icon-button (click)="irAPagina(idxPagina + 1)" *ngIf="idxPagina < paginas.length - 1">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+        <button mat-icon-button class="btn-add" (click)="nuevaPagina()" *ngIf="idxPagina === paginas.length - 1">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="desk">
+    <div class="paper-sheet">
+      <canvas #hojaCanvas></canvas>
+    </div>
+  </div>
+</div>

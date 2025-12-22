@@ -1,0 +1,19 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>{{ data.titulo }}</h2>
+  
+  <mat-dialog-content>
+    <p class="dialog-msg">{{ data.mensaje }}</p>
+    
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nombre</mat-label>
+      <input matInput [(ngModel)]="valor" (keyup.enter)="aceptar()" cdkFocusInitial autocomplete="off">
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="cancelar()">Cancelar</button>
+    <button mat-flat-button color="primary" (click)="aceptar()" [disabled]="!valor.trim()">
+      Crear
+    </button>
+  </mat-dialog-actions>
+</div>

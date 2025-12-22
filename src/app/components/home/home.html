@@ -13,10 +13,17 @@
     </div>
     
     <mat-nav-list class="nav-menu">
+      
       <a mat-list-item (click)="seccionActual = 'MIS_SALAS'; isMobile ? sidenav.close() : null" 
          [class.active-link]="seccionActual === 'MIS_SALAS'">
         <mat-icon matListItemIcon>dashboard</mat-icon> 
         <span matListItemTitle>Mis Pizarras</span>
+      </a>
+
+      <a mat-list-item (click)="seccionActual = 'MIS_NOTAS'; isMobile ? sidenav.close() : null" 
+         [class.active-link]="seccionActual === 'MIS_NOTAS'">
+        <mat-icon matListItemIcon>library_books</mat-icon> 
+        <span matListItemTitle>Mis Notas</span>
       </a>
       
       <a mat-list-item (click)="seccionActual = 'COMPARTIDAS'; isMobile ? sidenav.close() : null" 
@@ -24,6 +31,7 @@
         <mat-icon matListItemIcon>group</mat-icon> 
         <span matListItemTitle>Compartidas</span>
       </a>
+
     </mat-nav-list>
 
     <div class="sidebar-footer">
@@ -49,7 +57,7 @@
     <div *ngIf="seccionActual === 'MIS_SALAS'" class="fade-in content-wrapper">
       <header class="content-header">
         <h1>Tus Espacios</h1>
-        <p>Crea, dibuja y organiza tus ideas.</p>
+        <p>Crea, dibuja y organiza tus ideas en lienzos infinitos.</p>
       </header>
 
       <div class="create-bar">
@@ -62,34 +70,37 @@
       </div>
 
       <div class="grid-layout">
-  <div *ngFor="let sala of misSalas" class="apple-card">
-    
-    <div class="card-preview" (click)="irASala(sala.id)">
-      <img [src]="sala.imagenFondo || 'https://placehold.co/600x400/fafafa/e0e0e0?text=Lienzo'" alt="Preview">
-      
-      <div class="overlay">
-        <button mat-icon-button class="btn-icon-glass">
-          <mat-icon>edit</mat-icon>
-        </button>
+        <div *ngFor="let sala of misSalas" class="apple-card">
+          
+          <div class="card-preview" (click)="irASala(sala.id)">
+            <img [src]="sala.imagenFondo || 'https://placehold.co/600x400/fafafa/e0e0e0?text=Lienzo'" alt="Preview">
+            <div class="overlay">
+              <button mat-icon-button class="btn-icon-glass">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="card-info" (click)="irASala(sala.id)">
+            <div class="card-title">{{ sala.titulo }}</div>
+            <div class="card-meta" style="font-size: 10px; color: #aaa;">ID: {{ sala.id }}</div> 
+            
+            <div class="card-actions">
+              <button mat-icon-button matTooltip="Invitar" (click)="abrirInvitar(sala.id, $event)">
+                <mat-icon>person_add</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" matTooltip="Borrar" (click)="borrarSala(sala.id, $event)">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
 
-    <div class="card-info" (click)="irASala(sala.id)">
-      <div class="card-title">{{ sala.titulo }}</div>
-      <div class="card-meta" style="font-size: 10px; color: #aaa;">ID: {{ sala.id }}</div> 
-      
-      <div class="card-actions">
-        <button mat-icon-button matTooltip="Invitar" (click)="abrirInvitar(sala.id, $event)">
-          <mat-icon>person_add</mat-icon>
-        </button>
-        <button mat-icon-button color="warn" matTooltip="Borrar" (click)="borrarSala(sala.id, $event)">
-          <mat-icon>delete_outline</mat-icon>
-        </button>
-      </div>
-    </div>
-
-  </div>
-</div>
+    <div *ngIf="seccionActual === 'MIS_NOTAS'" class="fade-in" style="height: 100%; overflow: hidden;">
+       <app-file-explorer></app-file-explorer>
     </div>
 
     <div *ngIf="seccionActual === 'COMPARTIDAS'" class="fade-in content-wrapper">
