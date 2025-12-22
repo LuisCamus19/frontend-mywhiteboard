@@ -1,7 +1,9 @@
-<div class="board-container" (touchstart)="$event.preventDefault()">
+<div class="board-container">
 
   <canvas #pizarra 
           class="whiteboard-canvas"
+          (touchstart)="$event.preventDefault()"
+          (touchmove)="$event.preventDefault()"
           (contextmenu)="$event.preventDefault()"
           (selectstart)="$event.preventDefault()">
   </canvas>
@@ -30,9 +32,11 @@
 
   <div class="floating-panel top-center glass-effect pill-shape">
     <button class="pill-btn" (click)="toggleModo(false)" [class.active]="!modoMover">
-      ✏️ <span>Dibujar</span> </button>
+      ✏️ <span>Dibujar</span>
+    </button>
     <button class="pill-btn" (click)="toggleModo(true)" [class.active]="modoMover">
-      🖐️ <span>Mover</span> </button>
+      🖐️ <span>Mover</span>
+    </button>
   </div>
 
   <div class="floating-panel bottom-center glass-effect scrollable-toolbar">
