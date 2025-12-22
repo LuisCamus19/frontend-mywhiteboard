@@ -3,9 +3,12 @@
   overflow: hidden;
   position: relative;
   background-color: #f0f0f3;
-  /* Malla de puntos sutil para guiar el dibujo */
   background-image: radial-gradient(#ccc 1px, transparent 1px);
   background-size: 20px 20px;
+  
+  /* 🔥 CORRECCIÓN 1: Orden correcto (prefijo primero) */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .whiteboard-canvas {
@@ -16,11 +19,11 @@
 /* --- PANELES FLOTANTES (Glassmorphism) --- */
 .floating-panel {
   position: fixed;
-  background: rgba(255, 255, 255, 0.85); /* Vidrio */
+  background: rgba(255, 255, 255, 0.85);
   
-  /* 🔥 FIX PARA IPAD / SAFARI: El orden importa */
-  -webkit-backdrop-filter: blur(12px); /* Safari requiere esto */
-  backdrop-filter: blur(12px);         /* Estándar para Chrome/Edge/Firefox */
+  /* El orden aquí está bien: prefijo primero */
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   
   border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
@@ -38,7 +41,7 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
-/* Posiciones */
+/* Posiciones Desktop */
 .top-left { top: 20px; left: 20px; padding: 10px 16px; }
 .top-center { top: 20px; left: 50%; transform: translateX(-50%); padding: 6px; }
 .bottom-center { bottom: 30px; left: 50%; transform: translateX(-50%); padding: 10px 24px; border-radius: 24px; }
@@ -47,12 +50,11 @@
 /* Elementos Internos */
 .divider-vertical { width: 1px; height: 24px; background: #ddd; }
 
-/* Info Sala */
 .room-info { display: flex; flex-direction: column; }
 .room-info .label { font-size: 10px; color: #888; text-transform: uppercase; font-weight: 600; }
 .room-info .value { font-size: 14px; font-weight: 700; color: #333; }
 
-/* Botones Pastilla (Dibujar/Mover) */
+/* Botones Pastilla */
 .pill-shape { border-radius: 50px; }
 
 .pill-btn {
@@ -64,12 +66,11 @@
 }
 
 .pill-btn.active {
-  background: #fff;
-  color: #2962ff;
+  background: #fff; color: #2962ff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* Inputs de Herramientas */
+/* Herramientas */
 .tool-group { display: flex; align-items: center; gap: 8px; }
 
 .color-wrapper {
@@ -81,10 +82,9 @@
 
 .range-group { display: flex; flex-direction: column; gap: 2px; }
 .tool-label { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; }
-
 input[type=range] { width: 80px; accent-color: #2962ff; cursor: pointer; }
 
-/* Botones de Icono */
+/* Botones Icono */
 .icon-btn {
   background: transparent; border: none;
   font-size: 18px; width: 36px; height: 36px;
@@ -96,36 +96,68 @@ input[type=range] { width: 80px; accent-color: #2962ff; cursor: pointer; }
 .icon-btn:active { transform: scale(0.95); }
 .icon-btn.danger:hover { background: #ffebee; color: #d32f2f; }
 
-/* Zoom Control */
+/* Zoom */
 .column-layout { flex-direction: column; gap: 0; }
-.zoom-btn {
-  width: 44px; height: 44px; border: none; background: transparent;
-  font-size: 20px; color: #555; cursor: pointer;
-}
-.zoom-btn:hover { background: #f5f5f5; }
-.zoom-display {
-  font-size: 11px; font-weight: 700; color: #888;
-  padding: 4px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; width: 100%; text-align: center;
-}
+.zoom-btn { width: 44px; height: 44px; border: none; background: transparent; font-size: 20px; color: #555; cursor: pointer; }
+.zoom-display { font-size: 11px; font-weight: 700; color: #888; padding: 4px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; width: 100%; text-align: center; }
 
-/* Toast Notification (Mensaje flotante) */
 .floating-toast {
   position: fixed; top: 90px; left: 50%; transform: translateX(-50%);
   background: rgba(0,0,0,0.7); color: white;
   padding: 8px 20px; border-radius: 30px;
   font-size: 13px; font-weight: 500;
-  
-  /* 🔥 FIX PARA IPAD TAMBIÉN AQUÍ */
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px); 
-  
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   pointer-events: none;
 }
 
-/* Remote Cursors */
 .remote-cursor { position: absolute; pointer-events: none; z-index: 50; transition: all 0.1s linear; }
-.cursor-label {
-  background: #222; color: #fff; padding: 2px 8px;
-  border-radius: 6px; font-size: 11px; font-weight: 600;
-  margin-left: 12px; margin-top: -2px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+.cursor-label { background: #222; color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-left: 12px; margin-top: -2px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+/* 🔥 RESPONSIVE MOBILE FIXES 🔥 */
+@media (max-width: 768px) {
+  
+  /* 1. Panel Superior Izquierdo: Solo botón volver */
+  .top-left {
+    padding: 8px;
+    border-radius: 50%;
+    top: 15px; left: 15px;
+  }
+  .mobile-hide { display: none !important; }
+
+  /* 2. Panel Superior Centro: Solo Iconos */
+  .top-center {
+    top: 15px;
+    padding: 4px;
+    width: auto;
+  }
+  .pill-btn {
+    padding: 8px 12px;
+  }
+  .pill-btn span {
+    display: none; /* Oculta el texto */
+  }
+
+  /* 3. Panel Inferior: Scroll Horizontal */
+  .bottom-center {
+    width: 90%;
+    max-width: none;
+    padding: 8px 15px;
+    bottom: 20px;
+    justify-content: space-between;
+    
+    /* Scroll si no cabe */
+    overflow-x: auto; 
+    white-space: nowrap;
+    /* 🔥 CORRECCIÓN 2: Eliminada la línea obsoleta de webkit-overflow */
+  }
+  
+  input[type=range] { width: 60px; }
+
+  /* 4. Panel Zoom: Reubicado */
+  .bottom-left.zoom-panel {
+    bottom: 90px;
+    left: 15px;
+    padding: 0;
+    transform: scale(0.9);
+  }
 }

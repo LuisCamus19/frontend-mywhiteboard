@@ -21,8 +21,8 @@
     <button class="icon-btn" (click)="irAlHome()" title="Volver">
       ⬅
     </button>
-    <div class="divider-vertical"></div>
-    <div class="room-info">
+    <div class="divider-vertical mobile-hide"></div>
+    <div class="room-info mobile-hide">
       <span class="label">Sala</span>
       <span class="value">{{ salaId }}</span>
     </div>
@@ -30,14 +30,12 @@
 
   <div class="floating-panel top-center glass-effect pill-shape">
     <button class="pill-btn" (click)="toggleModo(false)" [class.active]="!modoMover">
-      ✏️ Dibujar
-    </button>
+      ✏️ <span>Dibujar</span> </button>
     <button class="pill-btn" (click)="toggleModo(true)" [class.active]="modoMover">
-      🖐️ Mover
-    </button>
+      🖐️ <span>Mover</span> </button>
   </div>
 
-  <div class="floating-panel bottom-center glass-effect">
+  <div class="floating-panel bottom-center glass-effect scrollable-toolbar">
     
     <div class="tool-group">
       <div class="color-wrapper" [style.background-color]="colorActual">
@@ -46,7 +44,7 @@
     </div>
 
     <div class="tool-group range-group">
-      <span class="tool-label">Grosor</span>
+      <span class="tool-label mobile-hide">Grosor</span>
       <input type="range" min="1" max="30" [(ngModel)]="grosor">
     </div>
 
@@ -64,7 +62,7 @@
     <button class="icon-btn danger" (click)="borrarTodo()" title="Limpiar">🗑️</button>
   </div>
 
-  <div class="floating-panel bottom-left glass-effect column-layout">
+  <div class="floating-panel bottom-left glass-effect column-layout zoom-panel">
     <button class="zoom-btn" (click)="cambiarZoom(0.1)">+</button>
     <div class="zoom-display">{{ (scale * 100) | number:'1.0-0' }}%</div>
     <button class="zoom-btn" (click)="cambiarZoom(-0.1)">-</button>
