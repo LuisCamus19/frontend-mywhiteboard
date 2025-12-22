@@ -8,11 +8,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router } from '@angular/router';
 import { Authservice } from '../../services/authservice';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Salasservice } from '../../services/salasservice';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { DialogoColaboradores } from '../dialogo-colaboradores/dialogo-colaboradores';
 
 @Component({
   selector: 'app-home',
@@ -27,6 +29,8 @@ import { Salasservice } from '../../services/salasservice';
     MatSnackBarModule,
     MatSidenavModule,
     MatListModule,
+    MatSnackBarModule,
+    MatDialogModule,
   ],
   templateUrl: './home.html',
   styleUrl: './home.css',
@@ -39,15 +43,15 @@ export class Home implements OnInit {
   public seccionActual: string = 'MIS_SALAS';
   public nuevoNombre: string = '';
   public usuarioActual: string = '';
-
-  // Variables Responsive
   public isMobile: boolean = false;
 
   constructor(
     private router: Router,
     private authService: Authservice,
     private salasService: Salasservice,
-    private breakpointObserver: BreakpointObserver
+    private breakpointObserver: BreakpointObserver,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) {
     this.usuarioActual = this.authService.getUsername();
   }
@@ -56,58 +60,78 @@ export class Home implements OnInit {
     this.cargarSalas();
     this.cargarCompartidas();
 
-    // 🔥 Detectar cambios de pantalla (Móvil vs Escritorio)
-    // Breakpoints.Handset incluye teléfonos y tablets en vertical
     this.breakpointObserver
       .observe([Breakpoints.Handset, Breakpoints.TabletPortrait])
-      .subscribe((result) => {
-        this.isMobile = result.matches;
-      });
+      .subscribe((result) => (this.isMobile = result.matches));
   }
 
   cargarSalas() {
-    this.salasService.listarMisSalas().subscribe((data) => (this.misSalas = data));
+    this.salasService.listarMisSalas().subscribe({
+      next: (data) => (this.misSalas = data),
+      error: () => this.mostrarNotificacion('Error al cargar salas', '❌'),
+    });
   }
 
   cargarCompartidas() {
-    this.salasService.listarCompartidas().subscribe((data) => (this.salasCompartidas = data));
+    this.salasService.listarCompartidas().subscribe({
+      next: (data) => (this.salasCompartidas = data),
+      error: () => this.mostrarNotificacion('Error al cargar compartidas', '❌'),
+    });
   }
 
   crearSala() {
     if (!this.nuevoNombre.trim()) return;
     const nuevaSala = { titulo: this.nuevoNombre };
-    this.salasService.crearSala(nuevaSala).subscribe((salaCreada) => {
-      this.misSalas.push(salaCreada);
-      this.nuevoNombre = '';
+
+    this.salasService.crearSala(nuevaSala).subscribe({
+      next: () => {
+        this.nuevoNombre = '';
+        this.mostrarNotificacion('Pizarra creada con éxito', '✨');
+        this.cargarSalas();
+      },
+      error: () => this.mostrarNotificacion('Error al crear pizarra', '⚠️'),
     });
   }
 
   borrarSala(salaId: string, event: Event) {
     event.stopPropagation();
-    if (confirm('¿Estás seguro de eliminar esta pizarra?')) {
+    if (confirm('¿Eliminar esta pizarra permanentemente?')) {
       this.salasService.borrarSala(salaId).subscribe(() => {
         this.misSalas = this.misSalas.filter((s) => s.id !== salaId);
+        this.mostrarNotificacion('Pizarra eliminada', '🗑️');
       });
     }
   }
 
   irASala(salaId: string) {
+    if (!salaId) return;
     this.router.navigate(['/tablero', salaId]);
   }
 
+  // 🔥 CAMBIO PRINCIPAL: Abrir Diálogo
   abrirInvitar(salaId: string, event: Event) {
     event.stopPropagation();
-    const username = prompt('Ingresa el usuario a invitar:');
-    if (username) {
-      this.salasService.agregarColaborador(salaId, username).subscribe({
-        next: () => alert('✅ Invitación enviada'),
-        error: () => alert('❌ Error: Usuario no encontrado o error de red'),
-      });
-    }
+
+    this.dialog.open(DialogoColaboradores, {
+      width: '400px',
+      data: { salaId: salaId },
+      panelClass: 'glass-dialog',
+      autoFocus: false,
+    });
   }
 
   logout() {
     this.authService.logout();
     this.router.navigate(['/login']);
+    this.mostrarNotificacion('Sesión cerrada', '👋');
+  }
+
+  private mostrarNotificacion(mensaje: string, icono: string) {
+    this.snackBar.open(`${icono} ${mensaje}`, 'OK', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top',
+      panelClass: ['glass-snackbar'],
+    });
   }
 }
