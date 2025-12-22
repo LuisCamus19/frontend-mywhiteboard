@@ -104,8 +104,26 @@ export class Home implements OnInit {
   }
 
   irASala(salaId: string) {
-    if (!salaId) return;
-    this.router.navigate(['/tablero', salaId]);
+    // 🔥 DEBUG: Ver qué está llegando
+    console.log('👉 Intentando entrar a sala con ID:', salaId);
+
+    if (!salaId) {
+      console.error('❌ Error: El ID de la sala es undefined o null');
+      this.mostrarNotificacion('Error: ID de sala inválido', '⚠️');
+      return;
+    }
+
+    // Si llega aquí, intenta navegar
+    this.router
+      .navigate(['/tablero', salaId])
+      .then((success) => {
+        if (success) {
+          console.log('✅ Navegación exitosa');
+        } else {
+          console.error('❌ El Router no pudo navegar (¿Ruta protegida?)');
+        }
+      })
+      .catch((err) => console.error('❌ Error crítico del router:', err));
   }
 
   // 🔥 CAMBIO PRINCIPAL: Abrir Diálogo

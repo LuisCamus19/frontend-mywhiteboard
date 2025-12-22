@@ -62,29 +62,34 @@
       </div>
 
       <div class="grid-layout">
-        <div *ngFor="let sala of misSalas" class="apple-card" (click)="irASala(sala.id)">
-          <div class="card-preview">
-            <img [src]="sala.imagenFondo || 'https://placehold.co/600x400/fafafa/e0e0e0?text=Lienzo'" alt="Preview">
-            <div class="overlay">
-              <button mat-icon-button class="btn-icon-glass">
-                <mat-icon>edit</mat-icon>
-              </button>
-            </div>
-          </div>
-          <div class="card-info">
-            <div class="card-title">{{ sala.titulo }}</div>
-            <div class="card-meta">Editado recientemente</div>
-            <div class="card-actions">
-              <button mat-icon-button matTooltip="Invitar" (click)="abrirInvitar(sala.id, $event)">
-                <mat-icon>person_add</mat-icon>
-              </button>
-              <button mat-icon-button color="warn" matTooltip="Borrar" (click)="borrarSala(sala.id, $event)">
-                <mat-icon>delete_outline</mat-icon>
-              </button>
-            </div>
-          </div>
-        </div>
+  <div *ngFor="let sala of misSalas" class="apple-card">
+    
+    <div class="card-preview" (click)="irASala(sala.id)">
+      <img [src]="sala.imagenFondo || 'https://placehold.co/600x400/fafafa/e0e0e0?text=Lienzo'" alt="Preview">
+      
+      <div class="overlay">
+        <button mat-icon-button class="btn-icon-glass">
+          <mat-icon>edit</mat-icon>
+        </button>
       </div>
+    </div>
+
+    <div class="card-info" (click)="irASala(sala.id)">
+      <div class="card-title">{{ sala.titulo }}</div>
+      <div class="card-meta" style="font-size: 10px; color: #aaa;">ID: {{ sala.id }}</div> 
+      
+      <div class="card-actions">
+        <button mat-icon-button matTooltip="Invitar" (click)="abrirInvitar(sala.id, $event)">
+          <mat-icon>person_add</mat-icon>
+        </button>
+        <button mat-icon-button color="warn" matTooltip="Borrar" (click)="borrarSala(sala.id, $event)">
+          <mat-icon>delete_outline</mat-icon>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
     </div>
 
     <div *ngIf="seccionActual === 'COMPARTIDAS'" class="fade-in content-wrapper">
