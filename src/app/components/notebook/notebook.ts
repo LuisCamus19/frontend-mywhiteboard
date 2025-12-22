@@ -308,19 +308,18 @@ export class Notebook implements OnInit, AfterViewInit {
       { passive: false }
     );
 
-    // 🔥 EVENTOS TÁCTILES (Pinch Zoom)
+    // EVENTOS TÁCTILES (Pinch Zoom)
     c.addEventListener(
       'touchstart',
       (e: TouchEvent) => {
-        if (e.touches.length === 2) {
-          // Iniciamos el gesto de pinza
-          e.preventDefault();
-          this.initialPinchDistance = this.getDistance(e.touches);
-          this.initialScale = this.escala;
-        } else if (e.touches.length === 1) {
-          // Dibujo normal con un dedo
+        if (e.cancelable) e.preventDefault(); // 🔥 Evita que el navegador procese el toque
+
+        if (e.touches.length === 1) {
           const touch = e.touches[0];
           this.start(touch.clientX, touch.clientY);
+        } else if (e.touches.length === 2) {
+          this.initialPinchDistance = this.getDistance(e.touches);
+          this.initialScale = this.escala;
         }
       },
       { passive: false }
@@ -355,6 +354,9 @@ export class Notebook implements OnInit, AfterViewInit {
         this.initialPinchDistance = 0;
       }
     });
+
+    // Bloquea el menú contextual (clic derecho o pulsación larga)
+    c.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
   // Función auxiliar matemática para calcular distancia entre dos puntos
