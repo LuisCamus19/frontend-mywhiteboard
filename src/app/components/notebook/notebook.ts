@@ -227,24 +227,19 @@ export class Notebook implements OnInit, AfterViewInit {
 
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d')!;
-    tempCanvas.width = esA3 ? 1131 : 800;
-    tempCanvas.height = esA3 ? 1600 : 1131;
+    const w = esA3 ? 1131 : 800;
+    const h = esA3 ? 1600 : 1131;
+    tempCanvas.width = w;
+    tempCanvas.height = h;
 
     for (let i = 0; i < this.paginas.length; i++) {
       const pagina = this.paginas[i];
       const trazos = (await this.pageService.getTrazosByPagina(pagina.id).toPromise()) || [];
 
-      // --- PASO 1: LIMPIAR CANVAS (Transparencia Total) ---
-      tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+      // 1. Limpiamos a transparencia total (Importante: no pintar blanco aún)
+      tempCtx.clearRect(0, 0, w, h);
 
-      // --- PASO 2: DIBUJAR FONDO PRIMERO ---
-      // Esto asegura que la goma no "agujeree" hasta el gris, sino que deje el fondo blanco limpio
-      tempCtx.globalCompositeOperation = 'source-over';
-      tempCtx.fillStyle = '#ffffff';
-      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-      this.dibujarFondoEnContexto(tempCtx, pagina.estiloFondo, tempCanvas.width, tempCanvas.height);
-
-      // --- PASO 3: DIBUJAR TRAZOS CON OPERACIÓN DE BORRADO REAL ---
+      // 2. Dibujamos los trazos primero
       tempCtx.lineCap = 'round';
       tempCtx.lineJoin = 'round';
 
@@ -253,8 +248,10 @@ export class Notebook implements OnInit, AfterViewInit {
         tempCtx.lineWidth = t.grosor;
 
         if (t.color === 'GOMA') {
+          // La goma "borra" los píxeles de los trazos anteriores en el canvas transparente
           tempCtx.globalCompositeOperation = 'destination-out';
         } else {
+          // Los trazos normales se dibujan encima
           tempCtx.globalCompositeOperation = t.color.length > 7 ? 'multiply' : 'source-over';
           tempCtx.strokeStyle = t.color;
         }
@@ -262,17 +259,23 @@ export class Notebook implements OnInit, AfterViewInit {
         tempCtx.moveTo(t.xInicial ?? 0, t.yInicial ?? 0);
         tempCtx.lineTo(t.xFinal ?? 0, t.yFinal ?? 0);
         tempCtx.stroke();
-
-        // Resetear siempre para el siguiente trazo
         tempCtx.globalCompositeOperation = 'source-over';
       });
 
-      // --- PASO 4: CONVERSIÓN SEGURA ---
-      // Usamos PNG para evitar que Safari en iPad convierta transparencias en negro
+      tempCtx.globalCompositeOperation = 'destination-over';
+
+      // Pintamos los cuadros/rayas
+      this.dibujarFondoEnContexto(tempCtx, pagina.estiloFondo, w, h);
+
+      // Pintamos el papel blanco al final de todo (en la capa más baja)
+      tempCtx.fillStyle = '#ffffff';
+      tempCtx.fillRect(0, 0, w, h);
+
+      // 4. Convertimos a imagen y añadimos al PDF
+      // Usamos PNG para que Safari mantenga la fidelidad de los colores
       const imgData = tempCanvas.toDataURL('image/png');
 
       if (i > 0) doc.addPage();
-      // 'NONE' en el último parámetro evita compresiones extrañas de jsPDF
       doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
     }
 
