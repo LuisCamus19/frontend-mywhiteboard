@@ -286,35 +286,31 @@ export class Notebook implements OnInit, AfterViewInit {
     }
   }
 
+  // Variables de control para el movimiento
+  private isPanning = false;
+  private lastTouchX = 0;
+  private lastTouchY = 0;
+
   setupEventosCanvas() {
     const c = this.canvasRef.nativeElement;
+    const desk = document.querySelector('.desk') as HTMLElement;
 
-    // --- 1. DIBUJO CON PEN/MOUSE (Pointer Events) ---
-    c.addEventListener(
-      'pointerdown',
-      (e: PointerEvent) => {
-        // Solo dibujamos con Lápiz o Mouse izquierdo
-        if (e.pointerType === 'pen' || (e.pointerType === 'mouse' && e.button === 0)) {
-          e.preventDefault();
-          e.stopPropagation();
+    // --- CAPA DE DIBUJO (Pointer Events) ---
+    c.addEventListener('pointerdown', (e: PointerEvent) => {
+      if (e.pointerType === 'pen' || (e.pointerType === 'mouse' && e.button === 0)) {
+        // Bloqueo total: el lápiz "secuestra" el canvas
+        c.setPointerCapture(e.pointerId);
+        this.start(e.clientX, e.clientY);
+        e.preventDefault();
+      }
+    });
 
-          c.setPointerCapture(e.pointerId); // Secuestramos el puntero
-          this.start(e.clientX, e.clientY);
-        }
-      },
-      { passive: false }
-    );
-
-    c.addEventListener(
-      'pointermove',
-      (e: PointerEvent) => {
-        if (this.dibujando && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
-          e.preventDefault();
-          this.move(e.clientX, e.clientY);
-        }
-      },
-      { passive: false }
-    );
+    c.addEventListener('pointermove', (e: PointerEvent) => {
+      if (this.dibujando) {
+        this.move(e.clientX, e.clientY);
+        e.preventDefault(); // Evita cualquier amago de scroll del sistema
+      }
+    });
 
     c.addEventListener('pointerup', (e: PointerEvent) => {
       if (this.dibujando) {
@@ -323,19 +319,16 @@ export class Notebook implements OnInit, AfterViewInit {
       }
     });
 
-    c.addEventListener('pointercancel', (e: PointerEvent) => {
-      if (this.dibujando) {
-        c.releasePointerCapture(e.pointerId);
-        this.end();
-      }
-    });
-
-    // --- 2. ZOOM Y SCROLL CON DEDOS (Touch Events) ---
+    // --- CAPA DE NAVEGACIÓN (Touch Events Manuales) ---
     c.addEventListener(
       'touchstart',
       (e: TouchEvent) => {
-        if (e.touches.length === 2) {
-          e.preventDefault();
+        if (e.touches.length === 1 && !this.dibujando) {
+          this.isPanning = true;
+          this.lastTouchX = e.touches[0].clientX;
+          this.lastTouchY = e.touches[0].clientY;
+        } else if (e.touches.length === 2) {
+          this.isPanning = false;
           this.initialPinchDistance = this.getDistance(e.touches);
           this.initialScale = this.escala;
         }
@@ -346,8 +339,22 @@ export class Notebook implements OnInit, AfterViewInit {
     c.addEventListener(
       'touchmove',
       (e: TouchEvent) => {
-        if (e.touches.length === 2) {
-          e.preventDefault();
+        // CRÍTICO: preventDefault aquí mata el bug del iPad definitivamente
+        e.preventDefault();
+
+        if (e.touches.length === 1 && this.isPanning) {
+          // Desplazamiento manual de la hoja
+          const touch = e.touches[0];
+          const dx = this.lastTouchX - touch.clientX;
+          const dy = this.lastTouchY - touch.clientY;
+
+          desk.scrollLeft += dx;
+          desk.scrollTop += dy;
+
+          this.lastTouchX = touch.clientX;
+          this.lastTouchY = touch.clientY;
+        } else if (e.touches.length === 2) {
+          // Zoom de pinza
           const currentDistance = this.getDistance(e.touches);
           const zoomFactor = currentDistance / this.initialPinchDistance;
           const nuevaEscala = this.initialScale * zoomFactor;
@@ -359,19 +366,10 @@ export class Notebook implements OnInit, AfterViewInit {
       { passive: false }
     );
 
-    // --- 3. RUEDA MOUSE ---
-    c.addEventListener(
-      'wheel',
-      (e: WheelEvent) => {
-        if (e.ctrlKey) {
-          e.preventDefault();
-          this.ajustarZoom(e.deltaY > 0 ? -0.05 : 0.05);
-        }
-      },
-      { passive: false }
-    );
-
-    c.addEventListener('contextmenu', (e) => e.preventDefault());
+    c.addEventListener('touchend', () => {
+      this.isPanning = false;
+      this.initialPinchDistance = 0;
+    });
   }
 
   // Función auxiliar matemática para calcular distancia entre dos puntos
