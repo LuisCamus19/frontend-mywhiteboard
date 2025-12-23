@@ -118,10 +118,18 @@ export class Notebook implements OnInit, AfterViewInit {
       this.cargarTodo();
       const canalSocket = 'cuaderno-' + this.cuadernoId;
       this.wsService.conectar(canalSocket);
+
       this.subs.add(
         this.wsService.trazos$.subscribe((trazo: Trazo) => {
-          if (trazo.paginaId === this.paginaActual?.id && trazo.usuario !== this.miUsuario) {
-            this.trazosPagina.push(trazo);
+          if (trazo.paginaId === this.paginaActual?.id) {
+            if (trazo.color === 'SINCRONIZAR_ESTADO') {
+              this.trazosPagina.forEach((t) => {
+                if (t.grupoId === trazo.grupoId) t.visible = trazo.visible;
+              });
+            } else if (trazo.usuario !== this.miUsuario) {
+              this.trazosPagina.push(trazo);
+            }
+
             this.redibujar();
           }
         })
@@ -153,11 +161,20 @@ export class Notebook implements OnInit, AfterViewInit {
     if (index < 0 || index >= this.paginas.length) return;
     this.idxPagina = index;
     this.paginaActual = this.paginas[index];
+
     this.trazosPagina = [];
+    if (this.ctx) {
+      this.ctx.clearRect(
+        0,
+        0,
+        this.canvasRef.nativeElement.width,
+        this.canvasRef.nativeElement.height
+      );
+    }
+
     setTimeout(() => {
-      this.redibujar();
       this.cargarTrazosDePagina();
-    }, 10);
+    }, 50);
   }
 
   cargarTrazosDePagina() {
@@ -199,7 +216,7 @@ export class Notebook implements OnInit, AfterViewInit {
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
 
-    const trazosADibujar = this.trazosPagina.filter((t) => t.visible !== false);
+    const trazosADibujar = this.trazosPagina.filter((t) => t && t.visible !== false);
 
     trazosADibujar.forEach((t) => {
       this.ctx.beginPath();
@@ -485,36 +502,36 @@ export class Notebook implements OnInit, AfterViewInit {
   }
 
   deshacer() {
-    // 1. Buscamos el último grupo que sea visible
-    const trazosVisibles = this.trazosPagina.filter((t) => t.visible);
+    const trazosVisibles = this.trazosPagina.filter((t) => t.visible !== false);
     if (trazosVisibles.length === 0) return;
 
     const ultimoTrazo = trazosVisibles[trazosVisibles.length - 1];
     const grupoAOCULTAR = ultimoTrazo.grupoId;
-    if (!grupoAOCULTAR) return;
+    const paginaIdActual = this.paginaActual.id;
 
-    // 2. Actualización Local (Instantánea para el usuario)
+    if (!grupoAOCULTAR || !paginaIdActual) return;
+
+    // 2. Actualización Local (Instantánea)
     this.trazosPagina.forEach((t) => {
       if (t.grupoId === grupoAOCULTAR) {
         t.visible = false;
       }
     });
 
-    // 3. Redibujamos para que desaparezca de la vista
+    // 3. Redibujamos
     this.redibujar();
 
-    // 4. Persistencia en el Servidor
-    this.pageService.setVisibilidadGrupo(grupoAOCULTAR, false).subscribe({
-      next: () => console.log('Sincronización de deshacer exitosa'),
+    this.pageService.setVisibilidadGrupo(paginaIdActual, grupoAOCULTAR, false).subscribe({
+      next: () => console.log('Sincronización de deshacer exitosa en DB'),
       error: (err) => console.error('Error al sincronizar deshacer:', err),
     });
 
-    // 5. Notificar por WebSocket (para que otros usuarios también lo vean desaparecer)
+    // 5. Notificar por WebSocket
     this.wsService.enviarTrazo('cuaderno-' + this.cuadernoId, {
       grupoId: grupoAOCULTAR,
       visible: false,
-      paginaId: this.paginaActual.id,
-      color: 'SINCRONIZAR_ESTADO', // Un flag para que el socket sepa qué hacer
+      paginaId: paginaIdActual,
+      color: 'SINCRONIZAR_ESTADO',
     } as any);
   }
 

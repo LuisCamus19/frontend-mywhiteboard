@@ -43,9 +43,8 @@ export class Pageservice {
     return this.http.get<Trazo[]>(`${environment.apiUrl}/api/trazos/pagina/${paginaId}`);
   }
 
-  // Añade este método en tu Pageservice
-  setVisibilidadGrupo(grupoId: string, visible: boolean): Observable<void> {
-    return this.http.put<void>(`${environment.apiUrl}/api/trazos/grupo/${grupoId}/visibilidad`, {
+  setVisibilidadGrupo(paginaId: number, grupoId: string, visible: boolean): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${paginaId}/trazos/grupo/${grupoId}/visibilidad`, {
       visible,
     });
   }
