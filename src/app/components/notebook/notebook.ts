@@ -226,7 +226,7 @@ export class Notebook implements OnInit, AfterViewInit {
     const pdfHeight = doc.internal.pageSize.getHeight();
 
     const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d')!;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true })!;
     const w = esA3 ? 1131 : 800;
     const h = esA3 ? 1600 : 1131;
     tempCanvas.width = w;
@@ -234,12 +234,20 @@ export class Notebook implements OnInit, AfterViewInit {
 
     for (let i = 0; i < this.paginas.length; i++) {
       const pagina = this.paginas[i];
-      const trazos = (await this.pageService.getTrazosByPagina(pagina.id).toPromise()) || [];
 
-      // 1. Limpiamos a transparencia total (Importante: no pintar blanco aún)
+      let trazos: Trazo[] = [];
+
+      if (this.paginaActual && pagina.id === this.paginaActual.id) {
+        trazos = [...this.trazosPagina];
+      } else {
+        trazos = (await this.pageService.getTrazosByPagina(pagina.id).toPromise()) || [];
+      }
+
+      // 1. Limpieza y preparación de la página
+      tempCtx.globalCompositeOperation = 'source-over';
       tempCtx.clearRect(0, 0, w, h);
 
-      // 2. Dibujamos los trazos primero
+      // 2. Capa de Tinta (Trazos)
       tempCtx.lineCap = 'round';
       tempCtx.lineJoin = 'round';
 
@@ -248,10 +256,8 @@ export class Notebook implements OnInit, AfterViewInit {
         tempCtx.lineWidth = t.grosor;
 
         if (t.color === 'GOMA') {
-          // La goma "borra" los píxeles de los trazos anteriores en el canvas transparente
           tempCtx.globalCompositeOperation = 'destination-out';
         } else {
-          // Los trazos normales se dibujan encima
           tempCtx.globalCompositeOperation = t.color.length > 7 ? 'multiply' : 'source-over';
           tempCtx.strokeStyle = t.color;
         }
@@ -262,19 +268,14 @@ export class Notebook implements OnInit, AfterViewInit {
         tempCtx.globalCompositeOperation = 'source-over';
       });
 
+      // 3. Capa de Fondo (Debajo de los trazos)
       tempCtx.globalCompositeOperation = 'destination-over';
-
-      // Pintamos los cuadros/rayas
       this.dibujarFondoEnContexto(tempCtx, pagina.estiloFondo, w, h);
-
-      // Pintamos el papel blanco al final de todo (en la capa más baja)
       tempCtx.fillStyle = '#ffffff';
       tempCtx.fillRect(0, 0, w, h);
 
-      // 4. Convertimos a imagen y añadimos al PDF
-      // Usamos PNG para que Safari mantenga la fidelidad de los colores
+      // 4. Integración al PDF
       const imgData = tempCanvas.toDataURL('image/png');
-
       if (i > 0) doc.addPage();
       doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
     }
