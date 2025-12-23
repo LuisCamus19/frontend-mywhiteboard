@@ -225,11 +225,8 @@ export class Notebook implements OnInit, AfterViewInit {
     const pdfWidth = doc.internal.pageSize.getWidth();
     const pdfHeight = doc.internal.pageSize.getHeight();
 
-    // Canvas temporal
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d')!;
-
-    // Usamos las dimensiones fijas para máxima calidad
     tempCanvas.width = esA3 ? 1131 : 800;
     tempCanvas.height = esA3 ? 1600 : 1131;
 
@@ -237,15 +234,17 @@ export class Notebook implements OnInit, AfterViewInit {
       const pagina = this.paginas[i];
       const trazos = (await this.pageService.getTrazosByPagina(pagina.id).toPromise()) || [];
 
-      // 1. Fondo base blanco
+      // --- PASO 1: LIMPIAR CANVAS (Transparencia Total) ---
+      tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+      // --- PASO 2: DIBUJAR FONDO PRIMERO ---
+      // Esto asegura que la goma no "agujeree" hasta el gris, sino que deje el fondo blanco limpio
       tempCtx.globalCompositeOperation = 'source-over';
       tempCtx.fillStyle = '#ffffff';
       tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-      // 2. Dibujar el fondo (cuadros/rayas)
       this.dibujarFondoEnContexto(tempCtx, pagina.estiloFondo, tempCanvas.width, tempCanvas.height);
 
-      // 3. Dibujar los trazos
+      // --- PASO 3: DIBUJAR TRAZOS CON OPERACIÓN DE BORRADO REAL ---
       tempCtx.lineCap = 'round';
       tempCtx.lineJoin = 'round';
 
@@ -254,8 +253,7 @@ export class Notebook implements OnInit, AfterViewInit {
         tempCtx.lineWidth = t.grosor;
 
         if (t.color === 'GOMA') {
-          tempCtx.globalCompositeOperation = 'source-over';
-          tempCtx.strokeStyle = '#ffffff';
+          tempCtx.globalCompositeOperation = 'destination-out';
         } else {
           tempCtx.globalCompositeOperation = t.color.length > 7 ? 'multiply' : 'source-over';
           tempCtx.strokeStyle = t.color;
@@ -264,13 +262,18 @@ export class Notebook implements OnInit, AfterViewInit {
         tempCtx.moveTo(t.xInicial ?? 0, t.yInicial ?? 0);
         tempCtx.lineTo(t.xFinal ?? 0, t.yFinal ?? 0);
         tempCtx.stroke();
+
+        // Resetear siempre para el siguiente trazo
+        tempCtx.globalCompositeOperation = 'source-over';
       });
 
-      // 4. Generar imagen (JPEG para menor peso, PNG para mayor calidad)
-      const imgData = tempCanvas.toDataURL('image/jpeg', 0.95);
+      // --- PASO 4: CONVERSIÓN SEGURA ---
+      // Usamos PNG para evitar que Safari en iPad convierta transparencias en negro
+      const imgData = tempCanvas.toDataURL('image/png');
 
       if (i > 0) doc.addPage();
-      doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      // 'NONE' en el último parámetro evita compresiones extrañas de jsPDF
+      doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
     }
 
     doc.save(`Cuaderno_${this.cuaderno?.nombre || 'export'}.pdf`);
