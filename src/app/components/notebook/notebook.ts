@@ -221,69 +221,101 @@ export class Notebook implements OnInit, AfterViewInit {
       unit: 'px',
       format: esA3 ? 'a3' : 'a4',
     });
+
     const pdfWidth = doc.internal.pageSize.getWidth();
     const pdfHeight = doc.internal.pageSize.getHeight();
+
+    // Canvas temporal
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d')!;
-    tempCanvas.width = this.canvasRef.nativeElement.width;
-    tempCanvas.height = this.canvasRef.nativeElement.height;
+
+    // Usamos las dimensiones fijas para máxima calidad
+    tempCanvas.width = esA3 ? 1131 : 800;
+    tempCanvas.height = esA3 ? 1600 : 1131;
 
     for (let i = 0; i < this.paginas.length; i++) {
       const pagina = this.paginas[i];
       const trazos = (await this.pageService.getTrazosByPagina(pagina.id).toPromise()) || [];
-      tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+      // 1. Fondo base blanco
+      tempCtx.globalCompositeOperation = 'source-over';
       tempCtx.fillStyle = '#ffffff';
       tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+      // 2. Dibujar el fondo (cuadros/rayas)
       this.dibujarFondoEnContexto(tempCtx, pagina.estiloFondo, tempCanvas.width, tempCanvas.height);
+
+      // 3. Dibujar los trazos
       tempCtx.lineCap = 'round';
       tempCtx.lineJoin = 'round';
+
       trazos.forEach((t) => {
         tempCtx.beginPath();
-        tempCtx.strokeStyle = t.color;
         tempCtx.lineWidth = t.grosor;
-        tempCtx.globalCompositeOperation = t.color.length > 7 ? 'multiply' : 'source-over';
+
+        if (t.color === 'GOMA') {
+          tempCtx.globalCompositeOperation = 'source-over';
+          tempCtx.strokeStyle = '#ffffff';
+        } else {
+          tempCtx.globalCompositeOperation = t.color.length > 7 ? 'multiply' : 'source-over';
+          tempCtx.strokeStyle = t.color;
+        }
+
         tempCtx.moveTo(t.xInicial ?? 0, t.yInicial ?? 0);
         tempCtx.lineTo(t.xFinal ?? 0, t.yFinal ?? 0);
         tempCtx.stroke();
       });
+
+      // 4. Generar imagen (JPEG para menor peso, PNG para mayor calidad)
       const imgData = tempCanvas.toDataURL('image/jpeg', 0.95);
+
       if (i > 0) doc.addPage();
       doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
     }
+
     doc.save(`Cuaderno_${this.cuaderno?.nombre || 'export'}.pdf`);
   }
 
   private dibujarFondoEnContexto(ctx: CanvasRenderingContext2D, estilo: any, w: number, h: number) {
+    ctx.save(); // Guardamos el estado del contexto
     ctx.strokeStyle = '#e0e0e0';
     ctx.fillStyle = '#e0e0e0';
     ctx.lineWidth = 1;
-    ctx.beginPath();
+
     const estiloStr = estilo?.toString();
+
     if (estiloStr === 'RAYADO') {
+      ctx.beginPath();
       for (let y = 50; y < h; y += 30) {
         ctx.moveTo(0, y);
         ctx.lineTo(w, y);
       }
       ctx.stroke();
     } else if (estiloStr === 'CUADRICULADO') {
+      ctx.beginPath();
+      // Líneas verticales
       for (let x = 0; x < w; x += 25) {
         ctx.moveTo(x, 0);
         ctx.lineTo(x, h);
       }
+      // Líneas horizontales
       for (let y = 0; y < h; y += 25) {
         ctx.moveTo(0, y);
         ctx.lineTo(w, y);
       }
       ctx.stroke();
     } else if (estiloStr === 'PUNTOS') {
+      // Para puntos, es más eficiente dibujar círculos pequeños
       for (let x = 25; x < w; x += 25) {
         for (let y = 25; y < h; y += 25) {
-          ctx.moveTo(x, y);
-          ctx.arc(x, y, 1, 0, Math.PI * 2);
+          ctx.beginPath();
+          ctx.arc(x, y, 0.8, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
-      ctx.fill();
     }
+
+    ctx.restore(); // Restauramos el estado para no afectar a los trazos
   }
 
   // Variables de control para el movimiento
