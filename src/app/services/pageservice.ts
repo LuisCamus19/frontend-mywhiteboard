@@ -42,4 +42,11 @@ export class Pageservice {
   getTrazosByPagina(paginaId: number): Observable<Trazo[]> {
     return this.http.get<Trazo[]>(`${environment.apiUrl}/api/trazos/pagina/${paginaId}`);
   }
+
+  // Añade este método en tu Pageservice
+  setVisibilidadGrupo(grupoId: string, visible: boolean): Observable<void> {
+    return this.http.put<void>(`${environment.apiUrl}/api/trazos/grupo/${grupoId}/visibilidad`, {
+      visible,
+    });
+  }
 }

@@ -189,26 +189,37 @@ export class Notebook implements OnInit, AfterViewInit {
     if (!this.canvasRef) return;
     const canvas = this.canvasRef.nativeElement;
     const esA3 = this.cuaderno?.formato === 'A3';
+
+    // 1. Configuración de dimensiones
     canvas.width = esA3 ? 1131 : 800;
     canvas.height = esA3 ? 1600 : 1131;
 
+    // 2. Limpieza del lienzo
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
 
-    this.trazosPagina.forEach((t) => {
+    const trazosADibujar = this.trazosPagina.filter((t) => t.visible !== false);
+
+    trazosADibujar.forEach((t) => {
       this.ctx.beginPath();
       this.ctx.lineWidth = t.grosor;
+
       if (t.color === 'GOMA') {
+        // Modo Borrador: Recorta los píxeles existentes
         this.ctx.globalCompositeOperation = 'destination-out';
         this.ctx.strokeStyle = 'rgba(0,0,0,1)';
       } else {
+        // Modo Normal o Resaltador (multiply si tiene canal alfa)
         this.ctx.globalCompositeOperation = t.color.length > 7 ? 'multiply' : 'source-over';
         this.ctx.strokeStyle = t.color;
       }
+
       this.ctx.moveTo(t.xInicial ?? 0, t.yInicial ?? 0);
       this.ctx.lineTo(t.xFinal ?? 0, t.yFinal ?? 0);
       this.ctx.stroke();
+
+      // Resetear siempre a source-over para el siguiente trazo
       this.ctx.globalCompositeOperation = 'source-over';
     });
   }
@@ -472,14 +483,41 @@ export class Notebook implements OnInit, AfterViewInit {
   end() {
     this.dibujando = false;
   }
+
   deshacer() {
-    if (this.trazosPagina.length === 0) return;
-    const ultimoTrazo = this.trazosPagina[this.trazosPagina.length - 1];
-    const grupoABorrar = ultimoTrazo.grupoId;
-    if (!grupoABorrar) return;
-    this.trazosPagina = this.trazosPagina.filter((t) => t.grupoId !== grupoABorrar);
+    // 1. Buscamos el último grupo que sea visible
+    const trazosVisibles = this.trazosPagina.filter((t) => t.visible);
+    if (trazosVisibles.length === 0) return;
+
+    const ultimoTrazo = trazosVisibles[trazosVisibles.length - 1];
+    const grupoAOCULTAR = ultimoTrazo.grupoId;
+    if (!grupoAOCULTAR) return;
+
+    // 2. Actualización Local (Instantánea para el usuario)
+    this.trazosPagina.forEach((t) => {
+      if (t.grupoId === grupoAOCULTAR) {
+        t.visible = false;
+      }
+    });
+
+    // 3. Redibujamos para que desaparezca de la vista
     this.redibujar();
+
+    // 4. Persistencia en el Servidor
+    this.pageService.setVisibilidadGrupo(grupoAOCULTAR, false).subscribe({
+      next: () => console.log('Sincronización de deshacer exitosa'),
+      error: (err) => console.error('Error al sincronizar deshacer:', err),
+    });
+
+    // 5. Notificar por WebSocket (para que otros usuarios también lo vean desaparecer)
+    this.wsService.enviarTrazo('cuaderno-' + this.cuadernoId, {
+      grupoId: grupoAOCULTAR,
+      visible: false,
+      paginaId: this.paginaActual.id,
+      color: 'SINCRONIZAR_ESTADO', // Un flag para que el socket sepa qué hacer
+    } as any);
   }
+
   salir() {
     this.router.navigate(['/dashboard']);
   }
